@@ -1,0 +1,8 @@
+{
+  "name": "Remix आरोग्य उपकेंद्र रेकॉर्ड प्रणाली",
+  "description": "A professional Marathi health records management system for PHC and Subcentre data tracking using React and Supabase.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
