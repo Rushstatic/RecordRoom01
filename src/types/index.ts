@@ -68,7 +68,8 @@ export type PageId =
   | 'tb-reports'
   | 'data-migration'
   | 'dynamic-report'
-  | 'sql-query';
+  | 'sql-query'
+  | 'admin-dashboard';
 
 export interface NavItem {
   id: PageId;

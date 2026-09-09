@@ -83,7 +83,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
     if (tabId === 'admin') {
       const parent = getParentTabForPage(currentPage);
       if (parent !== 'admin') {
-        onNavigate('phc-master');
+        onNavigate('admin-dashboard');
       }
     } else if (tabId === 'dashboard') {
       onNavigate('dashboard');

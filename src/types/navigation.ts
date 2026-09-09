@@ -180,6 +180,14 @@ export const REPORTS_SUB_ITEMS: SubNavItem[] = [
 
 export const ADMIN_SUB_ITEMS: SubNavItem[] = [
   {
+    id: 'admin-dashboard',
+    labelMarathi: 'प्रशासन डॅशबोर्ड',
+    labelEnglish: 'Admin Dashboard',
+    iconName: 'LayoutDashboard',
+    isControllerOnly: true,
+    parentTab: 'admin',
+  },
+  {
     id: 'phc-master',
     labelMarathi: 'प्रा.आ. केंद्र मास्टर',
     labelEnglish: 'PHC Master',
@@ -227,33 +235,10 @@ export const ADMIN_SUB_ITEMS: SubNavItem[] = [
     isControllerOnly: true,
     parentTab: 'admin',
   },
-  {
-    id: 'backup-audit',
-    labelMarathi: 'Activity / Audit Report',
-    labelEnglish: 'System Activity & Audit Log',
-    iconName: 'Database',
-    isControllerOnly: true,
-    parentTab: 'admin',
-  },
-  {
-    id: 'data-migration',
-    labelMarathi: 'डेटा Migration',
-    labelEnglish: 'Data Migration & Cleanup',
-    iconName: 'ServerCrash',
-    isControllerOnly: true,
-    parentTab: 'admin',
-  },
-  {
-    id: 'sql-query',
-    labelMarathi: 'SQL Query Console',
-    labelEnglish: 'SQL Query Console',
-    iconName: 'Terminal',
-    isControllerOnly: true,
-    parentTab: 'admin',
-  },
 ];
 
 export function getParentTabForPage(page: PageId, currentTabPreference?: MainNavTabId): MainNavTabId {
+  if (page === 'admin-dashboard') return 'admin';
   if (page === 'malaria-targets') {
     return currentTabPreference === 'reports' ? 'reports' : 'data-entry';
   }

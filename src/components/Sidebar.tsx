@@ -503,6 +503,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </span>
               </div>
 
+              {/* Admin Dashboard */}
+              <button
+                type="button"
+                onClick={() => handleItemClick('admin-dashboard')}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-medium transition-all cursor-pointer ${
+                  currentPage === 'admin-dashboard'
+                    ? 'bg-indigo-900 text-white font-bold shadow-xs'
+                    : 'text-indigo-900 hover:bg-indigo-50 border border-transparent'
+                }`}
+              >
+                <div className="flex items-center gap-2 truncate">
+                  <LayoutDashboard className="w-4 h-4 shrink-0" />
+                  <span className="truncate font-semibold">Admin Dashboard</span>
+                </div>
+              </button>
+
               {/* Master Data Sub-group */}
               <div>
                 <button
@@ -628,78 +644,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
                 <span className="text-[9px] bg-indigo-700 text-white font-bold px-1.5 py-0.5 rounded">
                   Builder
-                </span>
-              </button>
-
-              {/* Activity / Audit */}
-              <button
-                id="sidebar-nav-backup-audit"
-                type="button"
-                onClick={() => handleItemClick('backup-audit')}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-medium transition-all cursor-pointer ${
-                  currentPage === 'backup-audit'
-                    ? 'bg-emerald-800 text-white font-bold shadow-xs'
-                    : 'text-slate-700 hover:bg-slate-100 hover:text-emerald-900'
-                }`}
-              >
-                <div className="flex items-center gap-2 truncate">
-                  <Database
-                    className={`w-4 h-4 shrink-0 ${
-                      currentPage === 'backup-audit' ? 'text-amber-400' : 'text-slate-500'
-                    }`}
-                  />
-                  <span className="truncate">Activity / Audit Log</span>
-                </div>
-              </button>
-
-              {/* Data Migration */}
-              <button
-                id="sidebar-nav-data-migration"
-                type="button"
-                onClick={() => handleItemClick('data-migration')}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-medium transition-all cursor-pointer ${
-                  currentPage === 'data-migration'
-                    ? 'bg-emerald-800 text-white font-bold shadow-xs'
-                    : 'text-slate-700 hover:bg-slate-100 hover:text-emerald-900'
-                }`}
-              >
-                <div className="flex items-center gap-2 truncate">
-                  <ServerCrash
-                    className={`w-4 h-4 shrink-0 ${
-                      currentPage === 'data-migration' ? 'text-amber-400' : 'text-slate-500'
-                    }`}
-                  />
-                  <span className="truncate font-semibold">डेटा Migration</span>
-                </div>
-              </button>
-
-              {/* SQL Query Console */}
-              <button
-                id="sidebar-nav-sql-query"
-                type="button"
-                onClick={() => handleItemClick('sql-query')}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-medium transition-all cursor-pointer ${
-                  currentPage === 'sql-query'
-                    ? 'bg-emerald-800 text-white font-bold shadow-xs'
-                    : 'text-slate-700 hover:bg-slate-100 hover:text-emerald-900'
-                }`}
-              >
-                <div className="flex items-center gap-2 truncate">
-                  <Terminal
-                    className={`w-4 h-4 shrink-0 ${
-                      currentPage === 'sql-query' ? 'text-amber-400' : 'text-indigo-600'
-                    }`}
-                  />
-                  <span className="truncate font-semibold">SQL Query Console</span>
-                </div>
-                <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
-                    currentPage === 'sql-query'
-                      ? 'bg-amber-400 text-slate-950'
-                      : 'bg-indigo-100 text-indigo-800'
-                  }`}
-                >
-                  Admin
                 </span>
               </button>
             </div>

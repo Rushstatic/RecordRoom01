@@ -30,6 +30,7 @@ import TemplateBuilderPage from './pages/TemplateBuilderPage';
 import TemplateFieldsPage from './pages/TemplateFieldsPage';
 import DynamicRegisterPage from './pages/DynamicRegisterPage';
 import { ShieldAlert } from 'lucide-react';
+import { AdminDashboardPage } from './pages/AdminDashboardPage';
 
 const PHC_ONLY_PAGES: PageId[] = [
   'phc-master',
@@ -181,6 +182,8 @@ const AppContent: React.FC = () => {
         return <TemplateFieldsPage onNavigate={setCurrentPage} templateId={selectedTemplateId || storage.getItem('selectedTemplateId') || ''} />;
       case 'dynamic-register':
         return <DynamicRegisterPage onNavigate={setCurrentPage} templateId={selectedTemplateId || storage.getItem('selectedTemplateId') || ''} />;
+      case 'admin-dashboard':
+        return <AdminDashboardPage onNavigate={setCurrentPage} />;
       default:
         return <DashboardPage onNavigate={setCurrentPage} />;
     }
