@@ -144,6 +144,7 @@ export const REPORTS_SUB_ITEMS: SubNavItem[] = [
     labelEnglish: 'Malaria Coverage & Performance',
     iconName: 'Target',
     parentTab: 'reports',
+    isControllerOnly: true,
   },
   {
     id: 'malaria-targets',
@@ -151,6 +152,7 @@ export const REPORTS_SUB_ITEMS: SubNavItem[] = [
     labelEnglish: 'Target vs Actual Progress Report',
     iconName: 'Flag',
     parentTab: 'reports',
+    isControllerOnly: true,
   },
   {
     id: 'tb-reports',
@@ -172,6 +174,7 @@ export const REPORTS_SUB_ITEMS: SubNavItem[] = [
     labelEnglish: 'Data Quality & Validation Report',
     iconName: 'ShieldCheck',
     parentTab: 'reports',
+    isControllerOnly: true,
   },
 ];
 

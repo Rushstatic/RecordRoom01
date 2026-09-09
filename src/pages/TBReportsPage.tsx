@@ -211,7 +211,7 @@ export const TBReportsPage: React.FC<TBReportsPageProps> = ({ onNavigate }) => {
       </div>
 
       <div className="bg-white p-4 rounded-xl shadow-xs border border-slate-200">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className={`grid grid-cols-1 ${role === 'phc_controller' ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-4`}>
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
             <input 
@@ -222,12 +222,14 @@ export const TBReportsPage: React.FC<TBReportsPageProps> = ({ onNavigate }) => {
               className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
             />
           </div>
-          <select value={selectedVillage} onChange={e => setSelectedVillage(e.target.value)} className="w-full p-2 text-sm border border-slate-300 rounded-lg">
-            <option value="">सर्व गावे</option>
-            {villages.filter(v => role === 'phc_controller' || v.subcentre_id === user?.subcentreId).map(v => (
-              <option key={v.id} value={v.id}>{v.nameMarathi}</option>
-            ))}
-          </select>
+          {role === 'phc_controller' && (
+            <select value={selectedVillage} onChange={e => setSelectedVillage(e.target.value)} className="w-full p-2 text-sm border border-slate-300 rounded-lg">
+              <option value="">सर्व गावे</option>
+              {villages.map(v => (
+                <option key={v.id} value={v.id}>{v.nameMarathi || v.village_name}</option>
+              ))}
+            </select>
+          )}
           <select value={selectedSampleType} onChange={e => setSelectedSampleType(e.target.value)} className="w-full p-2 text-sm border border-slate-300 rounded-lg">
             <option value="">सर्व नमुना प्रकार</option>
             <option value="Sputum">Sputum</option>

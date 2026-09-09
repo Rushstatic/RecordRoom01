@@ -78,6 +78,7 @@ const MARATHI_MONTHS = [
 
 export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNavigate }) => {
   const { role, user, applicableSubcentreIds } = useAuth();
+  const isPhcController = role === 'phc_controller';
   const { isOnline } = useNetworkStatus();
 
   // CODE 12: Offline Draft Count
@@ -816,8 +817,9 @@ export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNaviga
       </div>
 
       {/* 2. REPORT DASHBOARD KPI CARDS (Requirement 2) */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3 print:hidden">
-        {/* Card 1: आजचे रक्त नमुने */}
+      {isPhcController && (
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3 print:hidden">
+          {/* Card 1: आजचे रक्त नमुने */}
         <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-xs flex flex-col justify-between hover:border-emerald-500 transition-colors">
           <div className="text-[11px] font-bold text-slate-500 leading-tight">
             आजचे रक्त नमुने
@@ -922,8 +924,10 @@ export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNaviga
           </div>
         </div>
       </div>
+      )}
 
       {/* 3. FILTERS CARD (Requirements 3, 4, 5, 6, 7) */}
+      {isPhcController && (
       <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 shadow-xs print:hidden">
         <div className="flex items-center justify-between gap-2 mb-3 pb-2 border-b border-slate-100">
           <div className="flex items-center gap-2">
@@ -1031,9 +1035,52 @@ export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNaviga
           </div>
         </div>
       </div>
+      )}
 
       {/* 4. SUB-TABS NAVIGATION (Navigation between distinct government report types) */}
-      <div className="flex items-center gap-1.5 overflow-x-auto border-b border-slate-200 pb-1 print:hidden">
+      <div className="flex items-center gap-1.5 overflow-x-auto border-b border-slate-200 pb-1 mt-4 print:hidden">
+        <button
+          id="tab-daily-report"
+          type="button"
+          onClick={() => setActiveTab('daily')}
+          className={`text-xs font-bold px-3.5 py-2 rounded-lg transition-colors whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+            activeTab === 'daily'
+              ? 'bg-emerald-700 text-white shadow-xs'
+              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <Calendar className="w-3.5 h-3.5" />
+          <span>{isPhcController ? 'दैनिक अहवाल' : 'आजचा अहवाल'}</span>
+        </button>
+
+        <button
+          id="tab-monthly-report"
+          type="button"
+          onClick={() => setActiveTab('monthly')}
+          className={`text-xs font-bold px-3.5 py-2 rounded-lg transition-colors whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+            activeTab === 'monthly'
+              ? 'bg-emerald-700 text-white shadow-xs'
+              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <BarChart3 className="w-3.5 h-3.5" />
+          <span>{isPhcController ? 'मासिक अहवाल' : 'या महिन्याचा अहवाल'}</span>
+        </button>
+
+        <button
+          id="tab-yearly-report"
+          type="button"
+          onClick={() => setActiveTab('yearly')}
+          className={`text-xs font-bold px-3.5 py-2 rounded-lg transition-colors whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+            activeTab === 'yearly'
+              ? 'bg-emerald-700 text-white shadow-xs'
+              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <TrendingUp className="w-3.5 h-3.5" />
+          <span>{isPhcController ? 'वार्षिक अहवाल' : 'वर्षाचा अहवाल'}</span>
+        </button>
+
         <button
           id="tab-collection-report"
           type="button"
@@ -1048,55 +1095,15 @@ export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNaviga
           }`}
         >
           <FileSpreadsheet className="w-3.5 h-3.5" />
-          <span>रक्त नमुना संकलन अहवाल</span>
+          <span>{isPhcController ? 'रक्त नमुना संकलन अहवाल' : 'Pending अहवाल'}</span>
         </button>
 
-        <button
-          id="tab-daily-report"
-          type="button"
-          onClick={() => setActiveTab('daily')}
-          className={`text-xs font-bold px-3.5 py-2 rounded-lg transition-colors whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
-            activeTab === 'daily'
-              ? 'bg-emerald-700 text-white shadow-xs'
-              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-          }`}
-        >
-          <Calendar className="w-3.5 h-3.5" />
-          <span>दैनिक अहवाल</span>
-        </button>
-
-        <button
-          id="tab-monthly-report"
-          type="button"
-          onClick={() => setActiveTab('monthly')}
-          className={`text-xs font-bold px-3.5 py-2 rounded-lg transition-colors whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
-            activeTab === 'monthly'
-              ? 'bg-emerald-700 text-white shadow-xs'
-              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-          }`}
-        >
-          <BarChart3 className="w-3.5 h-3.5" />
-          <span>मासिक अहवाल</span>
-        </button>
-
-        <button
-          id="tab-yearly-report"
-          type="button"
-          onClick={() => setActiveTab('yearly')}
-          className={`text-xs font-bold px-3.5 py-2 rounded-lg transition-colors whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
-            activeTab === 'yearly'
-              ? 'bg-emerald-700 text-white shadow-xs'
-              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-          }`}
-        >
-          <TrendingUp className="w-3.5 h-3.5" />
-          <span>वार्षिक अहवाल</span>
-        </button>
-
-        <button
-          id="tab-employee-report"
-          type="button"
-          onClick={() => setActiveTab('employee')}
+        {isPhcController && (
+          <>
+            <button
+              id="tab-employee-report"
+              type="button"
+              onClick={() => setActiveTab('employee')}
           className={`text-xs font-bold px-3.5 py-2 rounded-lg transition-colors whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
             activeTab === 'employee'
               ? 'bg-emerald-700 text-white shadow-xs'
@@ -1148,6 +1155,8 @@ export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNaviga
           <TrendingUp className="w-3.5 h-3.5" />
           <span>सांख्यिकी आलेख (Charts)</span>
         </button>
+          </>
+        )}
       </div>
 
       {/* 5. TAB CONTENT RENDERING */}

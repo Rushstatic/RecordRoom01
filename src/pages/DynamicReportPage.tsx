@@ -361,7 +361,7 @@ export default function DynamicReportPage({
 
       {/* Filters (Hidden in print) */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3 print:hidden">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-${isPhcController ? '4' : '2'} gap-3`}>
           {/* Search */}
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -374,31 +374,47 @@ export default function DynamicReportPage({
             />
           </div>
 
-          {/* Subcentre */}
-          <select
-            value={filterSubcentreId}
-            onChange={e => setFilterSubcentreId(e.target.value)}
-            className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white font-medium"
-          >
-            <option value="all">सर्व उपकेंद्रे</option>
-            {subcentres.map(sc => (
-              <option key={sc.id} value={sc.id}>{sc.name}</option>
-            ))}
-          </select>
+          {isPhcController && (
+            <>
+              {/* Subcentre */}
+              <select
+                value={filterSubcentreId}
+                onChange={e => setFilterSubcentreId(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white font-medium"
+              >
+                <option value="all">सर्व उपकेंद्रे</option>
+                {subcentres.map(sc => (
+                  <option key={sc.id} value={sc.id}>{sc.name}</option>
+                ))}
+              </select>
 
-          {/* Village */}
-          <select
-            value={filterVillageId}
-            onChange={e => setFilterVillageId(e.target.value)}
-            className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white font-medium"
-          >
-            <option value="all">सर्व गावे</option>
-            {villages
-              .filter(v => filterSubcentreId === 'all' || v.subcentre_id === filterSubcentreId)
-              .map(v => (
-                <option key={v.id} value={v.id}>{v.name}</option>
-              ))}
-          </select>
+              {/* Village */}
+              <select
+                value={filterVillageId}
+                onChange={e => setFilterVillageId(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white font-medium"
+              >
+                <option value="all">सर्व गावे</option>
+                {villages
+                  .filter(v => filterSubcentreId === 'all' || v.subcentre_id === filterSubcentreId)
+                  .map(v => (
+                    <option key={v.id} value={v.id}>{v.name}</option>
+                  ))}
+              </select>
+
+              {/* Employee */}
+              <select
+                value={filterEmployeeId}
+                onChange={e => setFilterEmployeeId(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white font-medium"
+              >
+                <option value="all">सर्व कर्मचारी</option>
+                {employees.map(emp => (
+                  <option key={emp.id} value={emp.id}>{emp.name}</option>
+                ))}
+              </select>
+            </>
+          )}
 
           {/* Date Filter */}
           <select
