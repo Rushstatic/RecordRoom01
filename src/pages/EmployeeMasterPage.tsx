@@ -621,154 +621,105 @@ export const EmployeeMasterPage: React.FC = () => {
             )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-700">
-              <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 uppercase text-[11px]">
-                <tr>
-                  <th className="px-3.5 py-3 w-12 text-center">क्रमांक</th>
-                  <th className="px-4 py-3">कर्मचारी नाव</th>
-                  <th className="px-4 py-3">पदनाम</th>
-                  <th className="px-4 py-3">PHC</th>
-                  <th className="px-4 py-3">उपकेंद्र</th>
-                  <th className="px-4 py-3">मोबाईल</th>
-                  <th className="px-4 py-3">Malaria Smear Code</th>
-                  <th className="px-4 py-3 text-center">स्थिती</th>
-                  <th className="px-4 py-3 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {filteredEmployees.map((emp, index) => (
-                  <tr
-                    key={emp.id}
-                    className={`hover:bg-slate-50/80 transition-colors ${
-                      !emp.is_active ? 'bg-slate-50/50 opacity-90' : ''
-                    }`}
-                  >
-                    {/* 1. क्रमांक */}
-                    <td className="px-3.5 py-3 text-center font-mono text-slate-500 text-[11px]">
-                      {index + 1}
-                    </td>
+          <div className="p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {filteredEmployees.map((emp, index) => (
+              <div 
+                key={emp.id} 
+                className={`bg-white rounded-xl border p-4 shadow-sm relative transition-all ${
+                  !emp.is_active ? 'border-slate-200 bg-slate-50 opacity-90' : 'border-emerald-100 hover:border-emerald-300'
+                }`}
+              >
+                {/* Status Badge */}
+                <div className="absolute top-4 right-4">
+                  {emp.is_active ? (
+                    <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-200">
+                      सक्रिय
+                    </span>
+                  ) : (
+                    <span className="bg-rose-100 text-rose-800 text-[10px] font-bold px-2 py-0.5 rounded border border-rose-200">
+                      निष्क्रिय
+                    </span>
+                  )}
+                </div>
 
-                    {/* 2. कर्मचारी नाव */}
-                    <td className="px-4 py-3 font-bold text-slate-900">
-                      <div className="flex items-center gap-1.5">
-                        <span>{emp.employee_name}</span>
-                        {!emp.is_active && (
-                          <span className="text-[9px] bg-rose-50 text-rose-700 border border-rose-200 px-1.5 py-0.2 rounded font-normal">
-                            सेवामुक्त / निष्क्रिय
-                          </span>
+                {/* Main Info */}
+                <div className="mb-4 pr-16">
+                  <h3 className="font-bold text-slate-900 text-sm mb-1">{emp.employee_name}</h3>
+                  <p className="text-xs text-slate-600 font-medium">{emp.designation || '-'}</p>
+                </div>
+
+                <div className="space-y-2 mb-4">
+                  {/* Mobile & Smear Code */}
+                  <div className="flex items-center justify-between bg-slate-50 p-2 rounded-lg border border-slate-100">
+                    <div className="flex items-center gap-1.5 text-xs font-mono text-slate-700">
+                      <Phone className="w-3.5 h-3.5 text-slate-400" />
+                      <span>{emp.mobile_number || '-'}</span>
+                    </div>
+                    <span className="bg-amber-100 text-amber-900 font-mono font-bold px-2 py-0.5 rounded border border-amber-300 text-xs">
+                      {emp.malaria_smear_code}
+                    </span>
+                  </div>
+
+                  {/* Location Info */}
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="flex items-start gap-1.5 p-2 bg-slate-50 rounded-lg border border-slate-100">
+                      <Building2 className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-[10px] text-slate-500 font-medium">PHC</p>
+                        <p className="font-semibold text-slate-800 line-clamp-1" title={emp.phc_name}>{emp.phc_name || '-'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-1.5 p-2 bg-slate-50 rounded-lg border border-slate-100">
+                      <Home className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-[10px] text-slate-500 font-medium">उपकेंद्र</p>
+                        <p className="font-semibold text-slate-800 line-clamp-1" title={emp.subcentre_name}>{emp.subcentre_name}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                  {isPhcController ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEdit(emp)}
+                        className="flex-1 text-xs bg-white hover:bg-slate-50 text-slate-700 font-semibold px-3 py-1.5 rounded-lg border border-slate-200 flex items-center justify-center gap-1.5 transition-colors"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                        <span>संपादित करा</span>
+                      </button>
+                      
+                      <button
+                        type="button"
+                        onClick={() => handleToggleActive(emp)}
+                        className={`flex-1 text-xs font-semibold px-3 py-1.5 rounded-lg border flex items-center justify-center gap-1.5 transition-colors ${
+                          emp.is_active 
+                            ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200' 
+                            : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200'
+                        }`}
+                      >
+                        {emp.is_active ? (
+                          <>
+                            <ToggleLeft className="w-3.5 h-3.5" />
+                            <span>निष्क्रिय करा</span>
+                          </>
+                        ) : (
+                          <>
+                            <ToggleRight className="w-3.5 h-3.5" />
+                            <span>सक्रिय करा</span>
+                          </>
                         )}
-                      </div>
-                    </td>
-
-                    {/* 3. पदनाम */}
-                    <td className="px-4 py-3 text-slate-800 font-medium">
-                      {emp.designation || '-'}
-                    </td>
-
-                    {/* 4. PHC */}
-                    <td className="px-4 py-3 text-slate-700">
-                      <div className="flex items-center gap-1">
-                        <Building2 className="w-3 h-3 text-blue-600 shrink-0" />
-                        <span>{emp.phc_name || '-'}</span>
-                      </div>
-                    </td>
-
-                    {/* 5. उपकेंद्र */}
-                    <td className="px-4 py-3">
-                      <div className="font-semibold text-slate-800 flex items-center gap-1">
-                        <Home className="w-3 h-3 text-emerald-700 shrink-0" />
-                        <span>{emp.subcentre_name}</span>
-                      </div>
-                    </td>
-
-                    {/* 6. मोबाईल व ईमेल */}
-                    <td className="px-4 py-3 font-mono text-slate-700">
-                      <div className="flex flex-col gap-1">
-                        {emp.mobile_number ? (
-                          <span className="flex items-center gap-1">
-                            <Phone className="w-3 h-3 text-slate-400" />
-                            <span>{emp.mobile_number}</span>
-                          </span>
-                        ) : null}
-                        {emp.email ? (
-                          <span className="flex items-center gap-1 text-[10px] text-slate-500 font-sans">
-                            <svg className="w-3 h-3 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                            </svg>
-                            <span className="truncate max-w-[120px]" title={emp.email}>{emp.email}</span>
-                          </span>
-                        ) : null}
-                        {!emp.mobile_number && !emp.email && '-'}
-                      </div>
-                    </td>
-
-                    {/* 7. Malaria Smear Code */}
-                    <td className="px-4 py-3">
-                      <span className="inline-block bg-amber-50 text-amber-900 font-mono font-bold px-2 py-0.5 rounded border border-amber-300 text-xs shadow-2xs">
-                        {emp.malaria_smear_code}
-                      </span>
-                    </td>
-
-                    {/* 8. स्थिती */}
-                    <td className="px-4 py-3 text-center">
-                      {emp.is_active ? (
-                        <span className="inline-block bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-emerald-300">
-                          सक्रिय
-                        </span>
-                      ) : (
-                        <span className="inline-block bg-rose-100 text-rose-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-rose-300">
-                          निष्क्रिय
-                        </span>
-                      )}
-                    </td>
-
-                    {/* 9. Action (Edit & Activate / Deactivate) */}
-                    <td className="px-4 py-3 text-right">
-                      {isPhcController ? (
-                        <div className="inline-flex items-center gap-1.5">
-                          {/* Edit button */}
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEdit(emp)}
-                            className="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-md border border-emerald-300 flex items-center gap-1 transition-colors"
-                            title="संपादित करा"
-                          >
-                            <Edit2 className="w-3 h-3" />
-                            <span>संपादित करा</span>
-                          </button>
-
-                          {/* Activate / Deactivate button */}
-                          {emp.is_active ? (
-                            <button
-                              type="button"
-                              onClick={() => handleToggleActive(emp)}
-                              className="text-xs bg-rose-50 hover:bg-rose-100 text-rose-800 font-semibold px-2.5 py-1 rounded-md border border-rose-200 flex items-center gap-1 transition-colors"
-                              title="निष्क्रिय करा"
-                            >
-                              <ToggleLeft className="w-3.5 h-3.5 text-rose-600" />
-                              <span>निष्क्रिय करा</span>
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => handleToggleActive(emp)}
-                              className="text-xs bg-green-50 hover:bg-green-100 text-green-800 font-semibold px-2.5 py-1 rounded-md border border-green-300 flex items-center gap-1 transition-colors"
-                              title="सक्रिय करा"
-                            >
-                              <ToggleRight className="w-3.5 h-3.5 text-green-700" />
-                              <span>सक्रिय करा</span>
-                            </button>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-[11px] text-slate-400 italic">केवळ वाचन</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      </button>
+                    </>
+                  ) : (
+                    <span className="text-[11px] text-slate-400 italic w-full text-center">केवळ वाचन (Read Only)</span>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
