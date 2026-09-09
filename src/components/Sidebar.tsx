@@ -24,6 +24,10 @@ import {
   ShieldAlert,
   Building,
   Terminal,
+  Activity,
+  FileText,
+  Wrench,
+  ServerCrash,
 } from 'lucide-react';
 import { PageId } from '../types';
 import { useAuth } from '../hooks/useAuth';
@@ -143,45 +147,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Navigation Sections */}
         <nav className="flex-1 px-3 py-2 space-y-4 overflow-y-auto">
           {/* ============================================================== */}
-          {/* SECTION 1: 🏠 DASHBOARD                                        */}
-          {/* ============================================================== */}
-          <div>
-            <button
-              id="sidebar-nav-dashboard"
-              type="button"
-              onClick={() => handleItemClick('dashboard')}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-                currentPage === 'dashboard'
-                  ? 'bg-emerald-800 text-white shadow-xs'
-                  : 'text-slate-700 hover:bg-slate-100 hover:text-emerald-900 border border-transparent'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <LayoutDashboard
-                  className={`w-4 h-4 shrink-0 ${
-                    currentPage === 'dashboard' ? 'text-amber-400' : 'text-slate-600'
-                  }`}
-                />
-                <span>🏠 Dashboard</span>
-              </div>
-              <span
-                className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
-                  currentPage === 'dashboard' ? 'bg-amber-400 text-slate-950' : 'bg-slate-100 text-slate-600'
-                }`}
-              >
-                माहिती
-              </span>
-            </button>
-          </div>
-
-          {/* ============================================================== */}
-          {/* SECTION 2: 📝 DATA ENTRY                                       */}
+          {/* SECTION 1: 📝 DATA ENTRY                                       */}
           {/* ============================================================== */}
           <div className="space-y-1">
             <div className="px-2 py-1 flex items-center justify-between">
               <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                 <FileEdit className="w-3.5 h-3.5 text-emerald-700" />
-                <span>📝 Data Entry (काम करणे)</span>
+                <span>1. Data Entry</span>
               </span>
             </div>
 
@@ -239,6 +211,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 नोंद
               </span>
+            </button>
+
+            {/* TB Register */}
+            <button
+              id="sidebar-nav-tb-register"
+              type="button"
+              onClick={() => handleItemClick('tb-register')}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-medium transition-all cursor-pointer ${
+                currentPage === 'tb-register'
+                  ? 'bg-emerald-800 text-white font-bold shadow-xs'
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-emerald-900'
+              }`}
+            >
+              <div className="flex items-center gap-2 truncate">
+                <Activity
+                  className={`w-4 h-4 shrink-0 ${
+                    currentPage === 'tb-register' ? 'text-amber-400' : 'text-slate-500'
+                  }`}
+                />
+                <span className="truncate">क्षयरोग (TB) रुग्ण नोंद</span>
+              </div>
             </button>
 
             {/* 2. Send Samples */}
@@ -344,151 +337,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <span className="truncate">डिजिटल नोंदवह्या (Dynamic)</span>
               </div>
             </button>
-
-            {/* 6. Dynamic Record Builder (PHC Controller ONLY) */}
-            {isPhcController && (
-              <button
-                id="sidebar-nav-dynamic-record-builder"
-                type="button"
-                onClick={() => handleItemClick('template-builder')}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-medium transition-all cursor-pointer ${
-                  currentPage === 'template-builder' || currentPage === 'template-fields'
-                    ? 'bg-indigo-900 text-white font-bold shadow-xs'
-                    : 'text-indigo-900 bg-indigo-50/70 hover:bg-indigo-100/80 border border-indigo-200/60'
-                }`}
-              >
-                <div className="flex items-center gap-2 truncate">
-                  <FileSpreadsheet
-                    className={`w-4 h-4 shrink-0 ${
-                      currentPage === 'template-builder' || currentPage === 'template-fields'
-                        ? 'text-amber-300'
-                        : 'text-indigo-700'
-                    }`}
-                  />
-                  <span className="truncate font-semibold">Dynamic Record Builder</span>
-                </div>
-                <span className="text-[9px] bg-indigo-700 text-white font-bold px-1.5 py-0.5 rounded">
-                  Builder
-                </span>
-              </button>
-            )}
-
-            {/* PHC Controller Only: Master Data & User Management */}
-            {isPhcController && (
-              <>
-                {/* 5. Master Data Sub-group */}
-                <div className="pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setIsMasterDataExpanded(!isMasterDataExpanded)}
-                    className="w-full flex items-center justify-between px-3 py-1.5 text-slate-600 hover:text-slate-900 text-xs font-semibold rounded-md hover:bg-slate-50 cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Building2 className="w-3.5 h-3.5 text-emerald-800" />
-                      <span>Master Data (मास्टर डेटा)</span>
-                    </div>
-                    {isMasterDataExpanded ? (
-                      <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                    ) : (
-                      <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                    )}
-                  </button>
-
-                  {isMasterDataExpanded && (
-                    <div className="pl-6 pr-1 py-1 space-y-0.5 border-l-2 border-emerald-100 ml-3.5">
-                      <button
-                        type="button"
-                        onClick={() => handleItemClick('phc-master')}
-                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-left text-[11px] transition-all cursor-pointer ${
-                          currentPage === 'phc-master'
-                            ? 'bg-emerald-700 text-white font-bold'
-                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                        }`}
-                      >
-                        <span>प्रा.आ. केंद्र मास्टर (PHC)</span>
-                        <span className="text-[9px] bg-amber-100 text-amber-900 font-bold px-1 rounded">
-                          नियंत्रक
-                        </span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleItemClick('subcentre-master')}
-                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-left text-[11px] transition-all cursor-pointer ${
-                          currentPage === 'subcentre-master'
-                            ? 'bg-emerald-700 text-white font-bold'
-                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                        }`}
-                      >
-                        <span>उपकेंद्र मास्टर (Subcentre)</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleItemClick('village-master')}
-                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-left text-[11px] transition-all cursor-pointer ${
-                          currentPage === 'village-master'
-                            ? 'bg-emerald-700 text-white font-bold'
-                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                        }`}
-                      >
-                        <span>गाव मास्टर (Village)</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleItemClick('employee-master')}
-                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-left text-[11px] transition-all cursor-pointer ${
-                          currentPage === 'employee-master'
-                            ? 'bg-emerald-700 text-white font-bold'
-                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                        }`}
-                      >
-                        <span>कर्मचारी मास्टर (Employee)</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* 6. User Management */}
-                <button
-                  id="sidebar-nav-user-management"
-                  type="button"
-                  onClick={() => handleItemClick('user-management')}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-medium transition-all cursor-pointer ${
-                    currentPage === 'user-management'
-                      ? 'bg-emerald-800 text-white font-bold shadow-xs'
-                      : 'text-slate-700 hover:bg-slate-100 hover:text-emerald-900'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 truncate">
-                    <UserCog
-                      className={`w-4 h-4 shrink-0 ${
-                        currentPage === 'user-management' ? 'text-amber-400' : 'text-slate-500'
-                      }`}
-                    />
-                    <span className="truncate">वापरकर्ता व्यवस्थापन (RBAC)</span>
-                  </div>
-                  <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
-                      currentPage === 'user-management' ? 'bg-amber-400 text-slate-950' : 'bg-slate-100 text-slate-600'
-                    }`}
-                  >
-                    नियंत्रक
-                  </span>
-                </button>
-              </>
-            )}
           </div>
 
           {/* ============================================================== */}
-          {/* SECTION 3: 📊 REPORTS                                          */}
+          {/* SECTION 2: 📊 REPORTS                                          */}
           {/* ============================================================== */}
           <div className="space-y-1">
             <div className="px-2 py-1 flex items-center justify-between">
               <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                 <BarChart3 className="w-3.5 h-3.5 text-teal-700" />
-                <span>📊 Reports (अहवाल व विश्लेषण)</span>
+                <span>2. Reports</span>
               </span>
             </div>
 
@@ -566,6 +424,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             </button>
 
+            {/* TB Reports */}
+            <button
+              id="sidebar-nav-tb-reports"
+              type="button"
+              onClick={() => handleItemClick('tb-reports')}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-medium transition-all cursor-pointer ${
+                currentPage === 'tb-reports'
+                  ? 'bg-emerald-800 text-white font-bold shadow-xs'
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-emerald-900'
+              }`}
+            >
+              <div className="flex items-center gap-2 truncate">
+                <FileText
+                  className={`w-4 h-4 shrink-0 ${
+                    currentPage === 'tb-reports' ? 'text-amber-400' : 'text-slate-500'
+                  }`}
+                />
+                <span className="truncate">TB अहवाल</span>
+              </div>
+            </button>
+
             {/* 4. Data Quality */}
             <button
               id="sidebar-nav-data-validation"
@@ -610,62 +489,221 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 अहवाल
               </span>
             </button>
-
-            {/* 5. Activity / Audit (PHC Controller Only) */}
-            {isPhcController && (
-              <>
-                <button
-                  id="sidebar-nav-backup-audit"
-                  type="button"
-                  onClick={() => handleItemClick('backup-audit')}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-medium transition-all cursor-pointer ${
-                    currentPage === 'backup-audit'
-                      ? 'bg-emerald-800 text-white font-bold shadow-xs'
-                      : 'text-slate-700 hover:bg-slate-100 hover:text-emerald-900'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 truncate">
-                    <Database
-                      className={`w-4 h-4 shrink-0 ${
-                        currentPage === 'backup-audit' ? 'text-amber-400' : 'text-slate-500'
-                      }`}
-                    />
-                    <span className="truncate">Activity / Audit Log</span>
-                  </div>
-                </button>
-
-                {/* 6. SQL Query Console (Admin Only) */}
-                <button
-                  id="sidebar-nav-sql-query"
-                  type="button"
-                  onClick={() => handleItemClick('sql-query')}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-medium transition-all cursor-pointer ${
-                    currentPage === 'sql-query'
-                      ? 'bg-emerald-800 text-white font-bold shadow-xs'
-                      : 'text-slate-700 hover:bg-slate-100 hover:text-emerald-900'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 truncate">
-                    <Terminal
-                      className={`w-4 h-4 shrink-0 ${
-                        currentPage === 'sql-query' ? 'text-amber-400' : 'text-indigo-600'
-                      }`}
-                    />
-                    <span className="truncate font-semibold">SQL Query Console</span>
-                  </div>
-                  <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
-                      currentPage === 'sql-query'
-                        ? 'bg-amber-400 text-slate-950'
-                        : 'bg-indigo-100 text-indigo-800'
-                    }`}
-                  >
-                    Admin
-                  </span>
-                </button>
-              </>
-            )}
           </div>
+
+          {/* ============================================================== */}
+          {/* SECTION 3: ⚙️ ADMIN (PHC Controller ONLY)                      */}
+          {/* ============================================================== */}
+          {isPhcController && (
+            <div className="space-y-1">
+              <div className="px-2 py-1 flex items-center justify-between">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-indigo-700" />
+                  <span>3. Admin</span>
+                </span>
+              </div>
+
+              {/* Master Data Sub-group */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setIsMasterDataExpanded(!isMasterDataExpanded)}
+                  className="w-full flex items-center justify-between px-3 py-1.5 text-slate-600 hover:text-slate-900 text-xs font-semibold rounded-md hover:bg-slate-50 cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-3.5 h-3.5 text-emerald-800" />
+                    <span>Master Data (मास्टर डेटा)</span>
+                  </div>
+                  {isMasterDataExpanded ? (
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                  ) : (
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                  )}
+                </button>
+
+                {isMasterDataExpanded && (
+                  <div className="pl-6 pr-1 py-1 space-y-0.5 border-l-2 border-emerald-100 ml-3.5">
+                    <button
+                      type="button"
+                      onClick={() => handleItemClick('phc-master')}
+                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-left text-[11px] transition-all cursor-pointer ${
+                        currentPage === 'phc-master'
+                          ? 'bg-emerald-700 text-white font-bold'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <span>प्रा.आ. केंद्र मास्टर (PHC)</span>
+                      <span className="text-[9px] bg-amber-100 text-amber-900 font-bold px-1 rounded">
+                        नियंत्रक
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleItemClick('subcentre-master')}
+                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-left text-[11px] transition-all cursor-pointer ${
+                        currentPage === 'subcentre-master'
+                          ? 'bg-emerald-700 text-white font-bold'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <span>उपकेंद्र मास्टर (Subcentre)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleItemClick('village-master')}
+                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-left text-[11px] transition-all cursor-pointer ${
+                        currentPage === 'village-master'
+                          ? 'bg-emerald-700 text-white font-bold'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <span>गाव मास्टर (Village)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleItemClick('employee-master')}
+                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-left text-[11px] transition-all cursor-pointer ${
+                        currentPage === 'employee-master'
+                          ? 'bg-emerald-700 text-white font-bold'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <span>कर्मचारी मास्टर (Employee)</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* User Management */}
+              <button
+                id="sidebar-nav-user-management"
+                type="button"
+                onClick={() => handleItemClick('user-management')}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-medium transition-all cursor-pointer ${
+                  currentPage === 'user-management'
+                    ? 'bg-emerald-800 text-white font-bold shadow-xs'
+                    : 'text-slate-700 hover:bg-slate-100 hover:text-emerald-900'
+                }`}
+              >
+                <div className="flex items-center gap-2 truncate">
+                  <UserCog
+                    className={`w-4 h-4 shrink-0 ${
+                      currentPage === 'user-management' ? 'text-amber-400' : 'text-slate-500'
+                    }`}
+                  />
+                  <span className="truncate">वापरकर्ता व्यवस्थापन (RBAC)</span>
+                </div>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
+                    currentPage === 'user-management' ? 'bg-amber-400 text-slate-950' : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  नियंत्रक
+                </span>
+              </button>
+
+              {/* Dynamic Record Builder */}
+              <button
+                id="sidebar-nav-dynamic-record-builder"
+                type="button"
+                onClick={() => handleItemClick('template-builder')}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-medium transition-all cursor-pointer ${
+                  currentPage === 'template-builder' || currentPage === 'template-fields'
+                    ? 'bg-indigo-900 text-white font-bold shadow-xs'
+                    : 'text-indigo-900 bg-indigo-50/70 hover:bg-indigo-100/80 border border-indigo-200/60'
+                }`}
+              >
+                <div className="flex items-center gap-2 truncate">
+                  <Wrench
+                    className={`w-4 h-4 shrink-0 ${
+                      currentPage === 'template-builder' || currentPage === 'template-fields'
+                        ? 'text-amber-300'
+                        : 'text-indigo-700'
+                    }`}
+                  />
+                  <span className="truncate font-semibold">Dynamic Record Builder</span>
+                </div>
+                <span className="text-[9px] bg-indigo-700 text-white font-bold px-1.5 py-0.5 rounded">
+                  Builder
+                </span>
+              </button>
+
+              {/* Activity / Audit */}
+              <button
+                id="sidebar-nav-backup-audit"
+                type="button"
+                onClick={() => handleItemClick('backup-audit')}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-medium transition-all cursor-pointer ${
+                  currentPage === 'backup-audit'
+                    ? 'bg-emerald-800 text-white font-bold shadow-xs'
+                    : 'text-slate-700 hover:bg-slate-100 hover:text-emerald-900'
+                }`}
+              >
+                <div className="flex items-center gap-2 truncate">
+                  <Database
+                    className={`w-4 h-4 shrink-0 ${
+                      currentPage === 'backup-audit' ? 'text-amber-400' : 'text-slate-500'
+                    }`}
+                  />
+                  <span className="truncate">Activity / Audit Log</span>
+                </div>
+              </button>
+
+              {/* Data Migration */}
+              <button
+                id="sidebar-nav-data-migration"
+                type="button"
+                onClick={() => handleItemClick('data-migration')}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-medium transition-all cursor-pointer ${
+                  currentPage === 'data-migration'
+                    ? 'bg-emerald-800 text-white font-bold shadow-xs'
+                    : 'text-slate-700 hover:bg-slate-100 hover:text-emerald-900'
+                }`}
+              >
+                <div className="flex items-center gap-2 truncate">
+                  <ServerCrash
+                    className={`w-4 h-4 shrink-0 ${
+                      currentPage === 'data-migration' ? 'text-amber-400' : 'text-slate-500'
+                    }`}
+                  />
+                  <span className="truncate font-semibold">डेटा Migration</span>
+                </div>
+              </button>
+
+              {/* SQL Query Console */}
+              <button
+                id="sidebar-nav-sql-query"
+                type="button"
+                onClick={() => handleItemClick('sql-query')}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-medium transition-all cursor-pointer ${
+                  currentPage === 'sql-query'
+                    ? 'bg-emerald-800 text-white font-bold shadow-xs'
+                    : 'text-slate-700 hover:bg-slate-100 hover:text-emerald-900'
+                }`}
+              >
+                <div className="flex items-center gap-2 truncate">
+                  <Terminal
+                    className={`w-4 h-4 shrink-0 ${
+                      currentPage === 'sql-query' ? 'text-amber-400' : 'text-indigo-600'
+                    }`}
+                  />
+                  <span className="truncate font-semibold">SQL Query Console</span>
+                </div>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
+                    currentPage === 'sql-query'
+                      ? 'bg-amber-400 text-slate-950'
+                      : 'bg-indigo-100 text-indigo-800'
+                  }`}
+                >
+                  Admin
+                </span>
+              </button>
+            </div>
+          )}
         </nav>
 
         {/* ================================================================ */}

@@ -1,6 +1,6 @@
-import { PageId } from './index';
+import { PageId, UserRole } from './index';
 
-export type MainNavTabId = 'dashboard' | 'data-entry' | 'reports';
+export type MainNavTabId = 'data-entry' | 'reports' | 'admin' | 'dashboard';
 
 export interface MainNavTabItem {
   id: MainNavTabId;
@@ -11,15 +11,7 @@ export interface MainNavTabItem {
   descriptionMarathi: string;
 }
 
-export const MAIN_NAV_TABS: MainNavTabItem[] = [
-  {
-    id: 'dashboard',
-    labelMarathi: 'Dashboard',
-    labelEnglish: 'Dashboard',
-    iconName: 'LayoutDashboard',
-    defaultPage: 'dashboard',
-    descriptionMarathi: 'माहिती पाहणे, KPI, चार्ट्स व अलर्ट्स',
-  },
+export const MAIN_NAV_TABS_SUBCENTRE: MainNavTabItem[] = [
   {
     id: 'data-entry',
     labelMarathi: 'Data Entry',
@@ -37,6 +29,43 @@ export const MAIN_NAV_TABS: MainNavTabItem[] = [
     descriptionMarathi: 'अहवाल पाहणे, Print व Export',
   },
 ];
+
+export const MAIN_NAV_TABS_PHC_CONTROLLER: MainNavTabItem[] = [
+  {
+    id: 'data-entry',
+    labelMarathi: 'Data Entry',
+    labelEnglish: 'Data Entry',
+    iconName: 'FileEdit',
+    defaultPage: 'daily-work',
+    descriptionMarathi: 'नोंद करणे / operational काम करणे',
+  },
+  {
+    id: 'reports',
+    labelMarathi: 'Reports',
+    labelEnglish: 'Reports',
+    iconName: 'BarChart3',
+    defaultPage: 'reports',
+    descriptionMarathi: 'अहवाल पाहणे, Print व Export',
+  },
+  {
+    id: 'admin',
+    labelMarathi: 'Admin',
+    labelEnglish: 'Admin',
+    iconName: 'ShieldCheck',
+    defaultPage: 'phc-master',
+    descriptionMarathi: 'मास्टर डेटा, युझर्स व नियंत्रण',
+  },
+];
+
+export function getMainNavTabsForRole(role?: UserRole): MainNavTabItem[] {
+  if (role === 'phc_controller') {
+    return MAIN_NAV_TABS_PHC_CONTROLLER;
+  }
+  return MAIN_NAV_TABS_SUBCENTRE;
+}
+
+// Backward compatibility export
+export const MAIN_NAV_TABS: MainNavTabItem[] = MAIN_NAV_TABS_PHC_CONTROLLER;
 
 export interface SubNavItem {
   id: PageId;
@@ -58,17 +87,17 @@ export const DATA_ENTRY_SUB_ITEMS: SubNavItem[] = [
     parentTab: 'data-entry',
   },
   {
-    id: 'tb-register',
-    labelMarathi: 'क्षयरोग (TB) संशयित रुग्ण नोंद',
-    labelEnglish: 'TB Suspected Patient Register',
-    iconName: 'Activity',
-    parentTab: 'data-entry',
-  },
-  {
     id: 'malaria-register',
     labelMarathi: 'मलेरिया रक्त नमुना नोंद',
     labelEnglish: 'Malaria Blood Sample Register',
     iconName: 'FileSpreadsheet',
+    parentTab: 'data-entry',
+  },
+  {
+    id: 'tb-register',
+    labelMarathi: 'क्षयरोग (TB) संशयित रुग्ण नोंद',
+    labelEnglish: 'TB Suspected Patient Register',
+    iconName: 'Activity',
     parentTab: 'data-entry',
   },
   {
@@ -93,67 +122,15 @@ export const DATA_ENTRY_SUB_ITEMS: SubNavItem[] = [
     parentTab: 'data-entry',
   },
   {
-    id: 'phc-master',
-    labelMarathi: 'प्रा.आ. केंद्र मास्टर',
-    labelEnglish: 'PHC Master',
-    iconName: 'Building2',
-    isControllerOnly: true,
-    parentTab: 'data-entry',
-  },
-  {
-    id: 'subcentre-master',
-    labelMarathi: 'उपकेंद्र मास्टर',
-    labelEnglish: 'Subcentre Master',
-    iconName: 'Home',
-    parentTab: 'data-entry',
-  },
-  {
-    id: 'village-master',
-    labelMarathi: 'गाव मास्टर',
-    labelEnglish: 'Village Master',
-    iconName: 'MapPin',
-    parentTab: 'data-entry',
-  },
-  {
-    id: 'employee-master',
-    labelMarathi: 'कर्मचारी मास्टर',
-    labelEnglish: 'Employee Master',
-    iconName: 'Users',
-    parentTab: 'data-entry',
-  },
-  {
-    id: 'template-builder',
-    labelMarathi: 'डायनॅमिक रेकॉर्ड बिल्डर',
-    labelEnglish: 'Dynamic Record Builder',
-    iconName: 'Wrench',
-    isControllerOnly: true,
-    parentTab: 'data-entry',
-  },
-  {
-    id: 'user-management',
-    labelMarathi: 'वापरकर्ता व्यवस्थापन',
-    labelEnglish: 'User Management & Roles',
-    iconName: 'UserCog',
-    isControllerOnly: true,
+    id: 'dynamic-register',
+    labelMarathi: 'डिजिटल नोंदवह्या (Dynamic)',
+    labelEnglish: 'Dynamic Registers',
+    iconName: 'Layers',
     parentTab: 'data-entry',
   },
 ];
 
 export const REPORTS_SUB_ITEMS: SubNavItem[] = [
-  {
-    id: 'dynamic-report',
-    labelMarathi: 'डायनॅमिक रजिस्टर अहवाल',
-    labelEnglish: 'Dynamic Register Reports',
-    iconName: 'FileSpreadsheet',
-    parentTab: 'reports',
-  },
-  {
-    id: 'tb-reports',
-    labelMarathi: 'TB अहवाल',
-    labelEnglish: 'TB Reports',
-    iconName: 'FileText',
-    parentTab: 'reports',
-  },
   {
     id: 'reports',
     labelMarathi: 'मलेरिया अहवाल (M1/M2)',
@@ -176,18 +153,84 @@ export const REPORTS_SUB_ITEMS: SubNavItem[] = [
     parentTab: 'reports',
   },
   {
+    id: 'tb-reports',
+    labelMarathi: 'TB अहवाल',
+    labelEnglish: 'TB Reports',
+    iconName: 'FileText',
+    parentTab: 'reports',
+  },
+  {
+    id: 'dynamic-report',
+    labelMarathi: 'डायनॅमिक रजिस्टर अहवाल',
+    labelEnglish: 'Dynamic Register Reports',
+    iconName: 'FileSpreadsheet',
+    parentTab: 'reports',
+  },
+  {
     id: 'data-validation',
     labelMarathi: 'डेटा गुणवत्ता अहवाल',
     labelEnglish: 'Data Quality & Validation Report',
     iconName: 'ShieldCheck',
     parentTab: 'reports',
   },
+];
+
+export const ADMIN_SUB_ITEMS: SubNavItem[] = [
+  {
+    id: 'phc-master',
+    labelMarathi: 'प्रा.आ. केंद्र मास्टर',
+    labelEnglish: 'PHC Master',
+    iconName: 'Building2',
+    isControllerOnly: true,
+    parentTab: 'admin',
+  },
+  {
+    id: 'subcentre-master',
+    labelMarathi: 'उपकेंद्र मास्टर',
+    labelEnglish: 'Subcentre Master',
+    iconName: 'Home',
+    isControllerOnly: true,
+    parentTab: 'admin',
+  },
+  {
+    id: 'village-master',
+    labelMarathi: 'गाव मास्टर',
+    labelEnglish: 'Village Master',
+    iconName: 'MapPin',
+    isControllerOnly: true,
+    parentTab: 'admin',
+  },
+  {
+    id: 'employee-master',
+    labelMarathi: 'कर्मचारी मास्टर',
+    labelEnglish: 'Employee Master',
+    iconName: 'Users',
+    isControllerOnly: true,
+    parentTab: 'admin',
+  },
+  {
+    id: 'user-management',
+    labelMarathi: 'वापरकर्ता व्यवस्थापन',
+    labelEnglish: 'User Management & Roles',
+    iconName: 'UserCog',
+    isControllerOnly: true,
+    parentTab: 'admin',
+  },
+  {
+    id: 'template-builder',
+    labelMarathi: 'डायनॅमिक रेकॉर्ड बिल्डर',
+    labelEnglish: 'Dynamic Record Builder',
+    iconName: 'Wrench',
+    isControllerOnly: true,
+    parentTab: 'admin',
+  },
   {
     id: 'backup-audit',
     labelMarathi: 'Activity / Audit Report',
     labelEnglish: 'System Activity & Audit Log',
     iconName: 'Database',
-    parentTab: 'reports',
+    isControllerOnly: true,
+    parentTab: 'admin',
   },
   {
     id: 'data-migration',
@@ -195,28 +238,45 @@ export const REPORTS_SUB_ITEMS: SubNavItem[] = [
     labelEnglish: 'Data Migration & Cleanup',
     iconName: 'ServerCrash',
     isControllerOnly: true,
-    parentTab: 'reports',
+    parentTab: 'admin',
+  },
+  {
+    id: 'sql-query',
+    labelMarathi: 'SQL Query Console',
+    labelEnglish: 'SQL Query Console',
+    iconName: 'Terminal',
+    isControllerOnly: true,
+    parentTab: 'admin',
   },
 ];
 
 export function getParentTabForPage(page: PageId, currentTabPreference?: MainNavTabId): MainNavTabId {
-  if (page === 'dashboard') return 'dashboard';
-
   if (page === 'malaria-targets') {
-    return currentTabPreference === 'data-entry' ? 'data-entry' : 'reports';
+    return currentTabPreference === 'reports' ? 'reports' : 'data-entry';
   }
-  if (page === 'template-fields' || page === 'dynamic-register') {
+  if (page === 'template-fields' || page === 'template-builder') {
+    return 'admin';
+  }
+  if (page === 'dynamic-register') {
     return 'data-entry';
   }
   if (page === 'dynamic-report') {
     return 'reports';
   }
 
-  const inDataEntry = DATA_ENTRY_SUB_ITEMS.some((item) => item.id === page);
-  if (inDataEntry) return 'data-entry';
+  const inAdmin = ADMIN_SUB_ITEMS.some((item) => item.id === page);
+  if (inAdmin) return 'admin';
 
   const inReports = REPORTS_SUB_ITEMS.some((item) => item.id === page);
   if (inReports) return 'reports';
 
-  return 'dashboard';
+  const inDataEntry = DATA_ENTRY_SUB_ITEMS.some((item) => item.id === page);
+  if (inDataEntry) return 'data-entry';
+
+  if (page === 'dashboard') {
+    return currentTabPreference || 'data-entry';
+  }
+
+  return 'data-entry';
 }
+

@@ -80,14 +80,15 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 
   const handleSelectTab = (tabId: MainNavTabId) => {
     setCurrentTab(tabId);
-    if (tabId === 'dashboard') {
+    if (tabId === 'admin') {
+      const parent = getParentTabForPage(currentPage);
+      if (parent !== 'admin') {
+        onNavigate('phc-master');
+      }
+    } else if (tabId === 'dashboard') {
       onNavigate('dashboard');
     } else if (tabId === 'data-entry') {
-      // If currently not on a data entry page, default to daily-work
-      const parent = getParentTabForPage(currentPage);
-      if (parent !== 'data-entry') {
-        onNavigate('daily-work');
-      }
+      onNavigate('daily-work');
     } else if (tabId === 'reports') {
       // If currently not on a reports page, default to reports
       const parent = getParentTabForPage(currentPage);
@@ -141,6 +142,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2 shadow-2xs">
             <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600">
               <span className="font-semibold text-emerald-800">
+                {currentTab === 'admin' && '⚙️ Admin'}
                 {currentTab === 'dashboard' && '🏠 Dashboard'}
                 {currentTab === 'data-entry' && '📝 Data Entry'}
                 {currentTab === 'reports' && '📊 Reports'}
@@ -163,11 +165,17 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                 {currentPage === 'village-master' && 'गाव मास्टर (Village Master)'}
                 {currentPage === 'employee-master' && 'कर्मचारी मास्टर (Employee Master)'}
                 {currentPage === 'user-management' && 'वापरकर्ता व्यवस्थापन व प्रवेश नियंत्रण (User Management)'}
+                {currentPage === 'template-builder' && 'डायनॅमिक रेकॉर्ड बिल्डर (Dynamic Record Builder)'}
+                {currentPage === 'template-fields' && 'डायनॅमिक फॉर्म फील्ड्स (Dynamic Record Fields)'}
+                {currentPage === 'dynamic-register' && 'डिजिटल नोंदवह्या (Dynamic Register)'}
+                {currentPage === 'dynamic-report' && 'डायनॅमिक रजिस्टर अहवाल (Dynamic Register Report)'}
                 {currentPage === 'reports' && 'मलेरिया अहवाल (M1 व M2 अहवाल)'}
                 {currentPage === 'malaria-reports' && 'मलेरिया अहवाल (M1 व M2 अहवाल)'}
                 {currentPage === 'malaria-coverage' && 'मलेरिया Coverage व Performance Dashboard'}
                 {currentPage === 'data-validation' && 'आरोग्य डेटा गुणवत्ता व तपासणी (Data Quality & Validation)'}
                 {currentPage === 'backup-audit' && 'डेटा बॅकअप व सिस्टीम Activity (Backup & Audit Log)'}
+                {currentPage === 'data-migration' && 'डेटा Migration'}
+                {currentPage === 'sql-query' && 'SQL Query Console'}
                 {currentPage === 'user-manual' && 'वापरकर्ता पुस्तिका (User Manual)'}
               </span>
             </div>

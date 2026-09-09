@@ -46,7 +46,7 @@ const PHC_ONLY_PAGES: PageId[] = [
 
 const AppContent: React.FC = () => {
   const { user, role, isLoggedIn, isLoading, authError, retryAuth, logout } = useAuth();
-  const [currentPage, setCurrentPage] = useState<PageId>('dashboard');
+  const [currentPage, setCurrentPage] = useState<PageId>('daily-work');
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
 
   // While checking auth status
@@ -98,7 +98,7 @@ const AppContent: React.FC = () => {
     return (
       <LoginPage
         onLoginSuccess={() => {
-          setCurrentPage('dashboard');
+          setCurrentPage('daily-work');
         }}
       />
     );

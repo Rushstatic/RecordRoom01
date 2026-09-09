@@ -39,13 +39,16 @@ import {
   PhcMaster,
   MalariaTarget,
   OfflineMalariaDraft,
+  TBPatientRecord,
+  RecordRegisterTemplate,
 } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { malariaService, formatIndianDate } from '../services/malariaService';
 import { masterDataService } from '../services/masterDataService';
 import { templateService } from '../services/templateService';
-import { RecordRegisterTemplate } from '../types';
+import { tbService } from '../services/tbService';
+import { storage } from '../lib/storage';
 import { targetService } from '../services/targetService';
 import { offlineDraftService } from '../services/offlineDraftService';
 import { auditService } from '../services/auditService';
@@ -57,7 +60,7 @@ interface DailyWorkPageProps {
 export const DailyWorkPage: React.FC<DailyWorkPageProps> = ({ onNavigate }) => {
   const { user, role } = useAuth();
   const { isOnline } = useNetworkStatus();
-  const isPhcController = role === 'phc_controller';
+  const isPhcController = role === 'phc_controller' || user?.role === 'phc_controller';
 
   // Current Date Strings
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
@@ -81,6 +84,8 @@ export const DailyWorkPage: React.FC<DailyWorkPageProps> = ({ onNavigate }) => {
   const [drafts, setDrafts] = useState<OfflineMalariaDraft[]>([]);
   const [targets, setTargets] = useState<MalariaTarget[]>([]);
   const [dynamicTemplates, setDynamicTemplates] = useState<RecordRegisterTemplate[]>([]);
+  const [tbSamples, setTbSamples] = useState<TBPatientRecord[]>([]);
+  const [dynamicTodayCounts, setDynamicTodayCounts] = useState<Record<string, number>>({});
 
   // Filtering & Selection
   const [selectedVillageFilter, setSelectedVillageFilter] = useState<string>('all');
@@ -132,13 +137,15 @@ export const DailyWorkPage: React.FC<DailyWorkPageProps> = ({ onNavigate }) => {
   const loadDailyWorkData = useCallback(async () => {
     setLoading(true);
     try {
-      const [phcData, subData, vilData, empData, allSamples, allTargets] = await Promise.all([
+      const [phcData, subData, vilData, empData, allSamples, allTargets, allTb, allTemplates] = await Promise.all([
         masterDataService.getPhcs(),
         masterDataService.getSubcentres(),
         masterDataService.getVillages(),
         masterDataService.getEmployees(),
         malariaService.getSamples(),
         targetService.getTargets(),
+        tbService.getSamples().catch(() => []),
+        templateService.getActiveTemplates().catch(() => []),
       ]);
 
       setPhcs(phcData);
@@ -147,6 +154,28 @@ export const DailyWorkPage: React.FC<DailyWorkPageProps> = ({ onNavigate }) => {
       setEmployees(empData);
       setSamples(allSamples);
       setTargets(allTargets);
+      setTbSamples(allTb);
+      setDynamicTemplates(allTemplates);
+
+      // Load counts for custom active templates
+      const nonStandardTemplates = allTemplates.filter(
+        (t) => t.is_active && t.register_code !== 'MALARIA' && t.register_code !== 'TB'
+      );
+      if (nonStandardTemplates.length > 0) {
+        const counts: Record<string, number> = {};
+        await Promise.all(
+          nonStandardTemplates.map(async (tmpl) => {
+            try {
+              const recs = await templateService.getDynamicRecords(tmpl.id);
+              const todayRecs = recs.filter((r) => r.record_date === todayStr);
+              counts[tmpl.id] = todayRecs.length;
+            } catch {
+              counts[tmpl.id] = 0;
+            }
+          })
+        );
+        setDynamicTodayCounts(counts);
+      }
 
       // Load offline drafts
       const offlineDrafts = offlineDraftService.getDrafts(user);
@@ -156,7 +185,7 @@ export const DailyWorkPage: React.FC<DailyWorkPageProps> = ({ onNavigate }) => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, todayStr]);
 
   useEffect(() => {
     loadDailyWorkData();
@@ -329,6 +358,67 @@ export const DailyWorkPage: React.FC<DailyWorkPageProps> = ({ onNavigate }) => {
   const allPendingSamples = useMemo(() => {
     return userScopedSamples.filter((s) => !s.sent_date);
   }, [userScopedSamples]);
+
+  // Today's TB records count
+  const todayTbCount = useMemo(() => {
+    return tbSamples.filter((t) => {
+      const isDateMatch = t.collection_date === todayStr || t.created_at?.startsWith(todayStr);
+      if (!isDateMatch) return false;
+      if (currentSubcentre && t.subcentre_id) {
+        return t.subcentre_id === currentSubcentre.id;
+      }
+      return true;
+    }).length;
+  }, [tbSamples, todayStr, currentSubcentre]);
+
+  // Active Available Registers for Subcentre Employee
+  const activeRegisters = useMemo(() => {
+    const list: Array<{
+      id: string;
+      name: string;
+      todayCount: number;
+      onNew: () => void;
+      onToday: () => void;
+    }> = [
+      {
+        id: 'malaria',
+        name: 'मलेरिया रक्त नमुना नोंदवही',
+        todayCount: todaySamples.length,
+        onNew: () => openQuickEntryModal(),
+        onToday: () => onNavigate('malaria-register'),
+      },
+      {
+        id: 'tb',
+        name: 'क्षयरोग (TB) संशयित रुग्ण नोंदवही',
+        todayCount: todayTbCount,
+        onNew: () => onNavigate('tb-register'),
+        onToday: () => onNavigate('tb-register'),
+      },
+    ];
+
+    // Add any other active custom dynamic register templates
+    const customTemplates = dynamicTemplates.filter(
+      (t) => t.is_active && t.register_code !== 'MALARIA' && t.register_code !== 'TB'
+    );
+
+    for (const tmpl of customTemplates) {
+      list.push({
+        id: tmpl.id,
+        name: tmpl.register_name,
+        todayCount: dynamicTodayCounts[tmpl.id] || 0,
+        onNew: () => {
+          storage.setItem('selectedTemplateId', tmpl.id);
+          onNavigate('dynamic-register');
+        },
+        onToday: () => {
+          storage.setItem('selectedTemplateId', tmpl.id);
+          onNavigate('dynamic-register');
+        },
+      });
+    }
+
+    return list;
+  }, [todaySamples.length, todayTbCount, dynamicTemplates, dynamicTodayCounts, onNavigate]);
 
   // Target Calculation (Monthly & Daily Pro-rated)
   const targetMetrics = useMemo(() => {
@@ -773,9 +863,11 @@ export const DailyWorkPage: React.FC<DailyWorkPageProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* 2. QUICK ACTION CARDS (Requirement 2) */}
-      <div>
-        <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-2.5 flex items-center gap-1.5">
+      {isPhcController ? (
+        <>
+          {/* 2. QUICK ACTION CARDS (Requirement 2) */}
+          <div>
+            <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-2.5 flex items-center gap-1.5">
           <Sparkles className="w-3.5 h-3.5 text-emerald-700" />
           <span>जलद कृती (Quick Action Cards)</span>
         </h2>
@@ -1379,6 +1471,26 @@ export const DailyWorkPage: React.FC<DailyWorkPageProps> = ({ onNavigate }) => {
           </div>
         )}
       </div>
+      </>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+          {activeRegisters.map((reg) => (
+            <div key={reg.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+              <h3 className="font-bold text-slate-800 text-lg mb-4">{reg.name}</h3>
+              <div className="flex gap-2">
+                <button onClick={reg.onNew} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 text-sm transition-colors cursor-pointer">
+                  <PlusCircle className="w-4 h-4" />
+                  + नवीन नोंद
+                </button>
+                <button onClick={reg.onToday} className="flex-1 bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 text-sm transition-colors cursor-pointer">
+                  <CalendarCheck className="w-4 h-4" />
+                  आजच्या नोंदी <span className="bg-blue-200 text-blue-800 py-0.5 px-2 rounded-full text-xs ml-1">{reg.todayCount}</span>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* 4. QUICK SAMPLE ENTRY MODAL (Requirement 4, 9, 10, 11) */}
       {showEntryModal && (
@@ -1895,17 +2007,19 @@ export const DailyWorkPage: React.FC<DailyWorkPageProps> = ({ onNavigate }) => {
       )}
 
       {/* 14. STICKY BOTTOM BUTTON FOR MOBILE (Requirement 14) */}
-      <div className="fixed bottom-18 right-4 md:hidden z-40">
-        <button
-          id="mobile-sticky-quick-entry-btn"
-          type="button"
-          onClick={() => openQuickEntryModal()}
-          className="bg-emerald-800 hover:bg-emerald-700 active:bg-emerald-950 text-white font-black text-sm px-4 py-3 rounded-full shadow-2xl flex items-center gap-2 border-2 border-amber-300 cursor-pointer transform active:scale-95 transition-transform"
-        >
-          <PlusCircle className="w-5 h-5 text-amber-300" />
-          <span>+ नवीन रक्त नमुना</span>
-        </button>
-      </div>
+      {isPhcController && (
+        <div className="fixed bottom-18 right-4 md:hidden z-40">
+          <button
+            id="mobile-sticky-quick-entry-btn"
+            type="button"
+            onClick={() => openQuickEntryModal()}
+            className="bg-emerald-800 hover:bg-emerald-700 active:bg-emerald-950 text-white font-black text-sm px-4 py-3 rounded-full shadow-2xl flex items-center gap-2 border-2 border-amber-300 cursor-pointer transform active:scale-95 transition-transform"
+          >
+            <PlusCircle className="w-5 h-5 text-amber-300" />
+            <span>+ नवीन रक्त नमुना</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };
