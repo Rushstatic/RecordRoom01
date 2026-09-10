@@ -239,6 +239,10 @@ export const malariaService = {
             sample_year,
             malaria_smear_code,
             sent_date,
+            test_result,
+            tested_on,
+            tested_by,
+            client_record_id,
             created_at,
             updated_at,
             village:village_master(
@@ -316,6 +320,10 @@ export const malariaService = {
               sample_year: Number(item.sample_year),
               malaria_smear_code: item.malaria_smear_code || employee?.malaria_smear_code || '',
               sent_date: item.sent_date || null,
+              test_result: item.test_result || null,
+              tested_on: item.tested_on || null,
+              tested_by: item.tested_by || null,
+              client_record_id: item.client_record_id || null,
               created_at: item.created_at,
               updated_at: item.updated_at,
               village_name: village?.village_name || '',
@@ -548,6 +556,7 @@ export const malariaService = {
       sample_year: sampleYear,
       sample_number: assignedSampleNumber,
       sent_date: null, // New sample MUST remain NULL
+      test_result: 'Pending',
       created_at: nowIso,
       updated_at: nowIso,
     };
@@ -569,6 +578,7 @@ export const malariaService = {
             sample_number: assignedSampleNumber,
             sample_year: sampleYear,
             malaria_smear_code: sampleData.malaria_smear_code,
+            test_result: 'Pending',
           })
           .select(`
             *,
@@ -595,6 +605,7 @@ export const malariaService = {
                 sample_number: nextNum,
                 sample_year: sampleYear,
                 malaria_smear_code: sampleData.malaria_smear_code,
+                test_result: 'Pending',
               })
               .select()
               .single();
@@ -666,6 +677,9 @@ export const malariaService = {
           payload.sample_collection_date = updates.sample_collection_date;
           payload.sample_year = new Date(updates.sample_collection_date).getFullYear();
         }
+        if (updates.test_result !== undefined) payload.test_result = updates.test_result;
+        if (updates.tested_on !== undefined) payload.tested_on = updates.tested_on;
+        if (updates.tested_by !== undefined) payload.tested_by = updates.tested_by;
 
         const { error } = await supabase.from('malaria_blood_samples').update(payload).eq('id', id);
         if (error) {
@@ -698,6 +712,64 @@ export const malariaService = {
       return item;
     });
     storage.setItem(STORAGE_KEY, JSON.stringify(list));
+  },
+
+  /**
+   * Bulk update test results
+   */
+  async bulkUpdateResults(sampleIds: string[], result: string, employeeId: string): Promise<boolean> {
+    if (!sampleIds || sampleIds.length === 0) {
+      throw new Error('कृपया किमान एक रक्त नमुना निवडा.');
+    }
+    sampleIds.forEach(id => assertValidUUID(id, 'रक्त नमुना ID'));
+
+    const nowIso = new Date().toISOString();
+    const testedOn = nowIso.split('T')[0];
+
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        const { error } = await supabase
+          .from('malaria_blood_samples')
+          .update({
+            test_result: result,
+            tested_on: testedOn,
+            tested_by: employeeId,
+            updated_at: nowIso,
+          })
+          .in('id', sampleIds);
+
+        if (error) {
+          console.error('Supabase bulk update results error:', error);
+          if (!isDemoMode()) {
+            throw new Error(`निकाल अद्ययावत करता आला नाही: ${error.message}`);
+          }
+        }
+      } catch (err: any) {
+        if (!isDemoMode()) {
+          throw new Error(err.message || 'निकाल अद्ययावत करता आला नाही.');
+        }
+      }
+    } else if (!isDemoMode()) {
+      throw new Error('Supabase कॉन्फिगर केलेले नाही.');
+    }
+
+    // Local update
+    const raw = storage.getItem(STORAGE_KEY);
+    let list: MalariaBloodSample[] = raw ? JSON.parse(raw) : DEFAULT_SAMPLES;
+    list = list.map((item) => {
+      if (sampleIds.includes(item.id)) {
+        return {
+          ...item,
+          test_result: result,
+          tested_on: testedOn,
+          tested_by: employeeId,
+          updated_at: nowIso,
+        };
+      }
+      return item;
+    });
+    storage.setItem(STORAGE_KEY, JSON.stringify(list));
+    return true;
   },
 
   /**

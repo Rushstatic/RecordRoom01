@@ -8,7 +8,7 @@ import { storage } from '../lib/storage';
 import { 
   ArrowLeft, Search, Download, Printer, 
   ChevronLeft, ChevronRight, Eye, Edit3, Trash2,
-  FileSpreadsheet, User, MapPin, Calendar, Activity, XCircle, AlertTriangle
+  FileSpreadsheet, User, MapPin, Calendar, Activity, XCircle, AlertTriangle, CheckCircle2
 } from 'lucide-react';
 import { DynamicRecordForm } from '../components/DynamicRecordForm';
 import { exportElementToPDF } from '../utils/pdfExport';
@@ -80,6 +80,11 @@ export default function DynamicReportPage({
   // Modals
   const [viewRecord, setViewRecord] = useState<DynamicRecordEntry | null>(null);
   const [editRecord, setEditRecord] = useState<DynamicRecordEntry | null>(null);
+  const [resultRecord, setResultRecord] = useState<DynamicRecordEntry | null>(null);
+  const [resultUpdates, setResultUpdates] = useState<any>({});
+  
+  // Notifications
+  const [successToast, setSuccessToast] = useState<string | null>(null);
 
   useEffect(() => {
     loadAllTemplatesAndMaster();
@@ -217,6 +222,35 @@ export default function DynamicReportPage({
     const start = (page - 1) * pageSize;
     return filteredRecords.slice(start, start + pageSize);
   }, [filteredRecords, page, pageSize]);
+
+  const handleResultSave = async () => {
+    if (!resultRecord || !selectedTemplateId) return;
+    try {
+      const updatedData = { ...resultRecord.record_data, ...resultUpdates };
+      const updatedRecord: DynamicRecordEntry = {
+        ...resultRecord,
+        record_data: updatedData,
+        updated_at: new Date().toISOString(),
+        updated_by: user?.employeeId,
+      };
+
+      await templateService.saveDynamicRecord(updatedRecord);
+      
+      auditService.logAction({
+        action: 'DYNAMIC_RECORD_UPDATE',
+        module: 'Reports' as any,
+        record_description: `Updated Results for Record in: ${template?.register_name}`,
+      });
+
+      setResultRecord(null);
+      loadTemplateData(selectedTemplateId);
+      
+      setSuccessToast('तपासणी निकाल यशस्वीरित्या जतन केला (Result saved successfully).');
+      setTimeout(() => setSuccessToast(null), 4000);
+    } catch (e: any) {
+      alert('Error updating result: ' + e.message);
+    }
+  };
 
   // CSV Export
   const handleExportCSV = () => {
@@ -492,7 +526,10 @@ export default function DynamicReportPage({
           
           {/* Result Filters */}
           {resultFields.map(f => {
-            const opts = f.options_json || [];
+            let opts: any[] = [];
+            try {
+              opts = typeof f.options_json === 'string' ? JSON.parse(f.options_json) : (f.options_json || []);
+            } catch(e) {}
             return (
               <select
                 key={f.id}
@@ -501,6 +538,7 @@ export default function DynamicReportPage({
                 className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white font-medium text-teal-700"
               >
                 <option value="all">सर्व {f.field_label}</option>
+                <option value="Pending">Pending</option>
                 {opts.map((opt: any, idx: number) => (
                   <option key={idx} value={opt.value || opt.label}>{opt.label}</option>
                 ))}
@@ -607,6 +645,22 @@ export default function DynamicReportPage({
                       </span>
                     )}
 
+                    {isPhcController && resultFields.length > 0 && (
+                      <button 
+                        onClick={() => {
+                          setResultRecord(r);
+                          const initialVals: any = {};
+                          resultFields.forEach(f => {
+                            initialVals[f.field_key] = r.record_data?.[f.field_key] || 'Pending';
+                          });
+                          setResultUpdates(initialVals);
+                        }}
+                        className="p-1 text-emerald-600 hover:bg-emerald-50 rounded" 
+                        title="निकाल अद्यतनित करा"
+                      >
+                        <Activity className="w-4 h-4" />
+                      </button>
+                    )}
                     {isPhcController && (
                       <button 
                         onClick={() => handleDelete(r.id)}
@@ -728,6 +782,71 @@ export default function DynamicReportPage({
               />
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Update Result Modal */}
+      {resultRecord && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden border border-slate-200">
+            <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-50">
+              <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                <Activity className="w-5 h-5 text-emerald-600" />
+                तपासणी निकाल अद्यतनित करा
+              </h3>
+              <button onClick={() => setResultRecord(null)} className="p-1 text-slate-400 hover:text-slate-700">
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              {resultFields.map(f => {
+                let options = [];
+                try {
+                  options = typeof f.options_json === 'string' ? JSON.parse(f.options_json) : (f.options_json || []);
+                } catch(e) {}
+                
+                return (
+                  <div key={f.id}>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      {f.field_label}
+                    </label>
+                    <select
+                      value={resultUpdates[f.field_key] || ''}
+                      onChange={(e) => setResultUpdates({ ...resultUpdates, [f.field_key]: e.target.value })}
+                      className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-600 text-sm font-medium bg-white"
+                    >
+                      <option value="Pending">Pending</option>
+                      {options.map((opt: any, idx: number) => (
+                        <option key={idx} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end gap-3">
+              <button 
+                onClick={() => setResultRecord(null)}
+                className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-xl text-sm font-bold hover:bg-slate-50"
+              >
+                रद्द करा
+              </button>
+              <button 
+                onClick={handleResultSave}
+                className="px-5 py-2 bg-emerald-700 text-white rounded-xl text-sm font-bold hover:bg-emerald-800"
+              >
+                जतन करा
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {successToast && (
+        <div className="fixed bottom-4 right-4 z-[60] bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4">
+          <CheckCircle2 className="w-5 h-5" />
+          <span className="font-medium text-sm">{successToast}</span>
         </div>
       )}
     </div>

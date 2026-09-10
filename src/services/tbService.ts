@@ -114,6 +114,7 @@ class TBService {
     const newSample: TBPatientRecord = {
       ...sample,
       gender: normalizeTBGender(sample.gender),
+      test_result: 'Pending',
       id: crypto.randomUUID(),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -136,6 +137,7 @@ class TBService {
         risk_type: newSample.risk_type,
         sample_type: newSample.sample_type,
         sample_given_at: newSample.sample_given_at ? newSample.sample_given_at.trim() : null,
+        test_result: 'Pending',
         created_at: newSample.created_at,
         updated_at: newSample.updated_at,
       };
@@ -188,6 +190,9 @@ class TBService {
       if (updates.risk_type !== undefined) dbUpdates.risk_type = updates.risk_type;
       if (updates.sample_type !== undefined) dbUpdates.sample_type = updates.sample_type;
       if (updates.sample_given_at !== undefined) dbUpdates.sample_given_at = updates.sample_given_at ? updates.sample_given_at.trim() : null;
+      if (updates.test_result !== undefined) dbUpdates.test_result = updates.test_result;
+      if (updates.tested_on !== undefined) dbUpdates.tested_on = updates.tested_on;
+      if (updates.tested_by !== undefined) dbUpdates.tested_by = updates.tested_by;
 
       const { data, error } = await supabase.from('tb_suspected_patient_register').update(dbUpdates).eq('id', id).select();
       if (error) {
@@ -206,6 +211,58 @@ class TBService {
       setLocalData(data);
       return data[index];
     }
+  }
+
+  async bulkUpdateResults(sampleIds: string[], result: string, employeeId: string): Promise<boolean> {
+    if (!sampleIds || sampleIds.length === 0) {
+      throw new Error('कृपया किमान एक नोंद निवडा.');
+    }
+    sampleIds.forEach(id => assertValidUUID(id, 'नोंद ID'));
+
+    const nowIso = new Date().toISOString();
+    const testedOn = nowIso.split('T')[0];
+
+    if (isSupabaseConfigured() && supabase) {
+      const dbUpdates = {
+        test_result: result,
+        tested_on: testedOn,
+        tested_by: employeeId,
+        updated_at: nowIso,
+      };
+      
+      const { error } = await supabase
+        .from('tb_suspected_patient_register')
+        .update(dbUpdates)
+        .in('id', sampleIds);
+        
+      if (error) {
+        console.error('Supabase bulk update results error:', error);
+        if (!isDemoMode()) {
+          throw new Error(`निकाल अद्ययावत करता आला नाही: ${error.message}`);
+        }
+      }
+    } else {
+      if (!isDemoMode()) {
+        throw new Error('Supabase कॉन्फिगर केलेले नाही.');
+      }
+    }
+
+    // Local update
+    let data = getLocalData();
+    data = data.map(item => {
+      if (sampleIds.includes(item.id)) {
+        return {
+          ...item,
+          test_result: result,
+          tested_on: testedOn,
+          tested_by: employeeId,
+          updated_at: nowIso,
+        };
+      }
+      return item;
+    });
+    setLocalData(data);
+    return true;
   }
 
   async deleteSample(id: string): Promise<void> {

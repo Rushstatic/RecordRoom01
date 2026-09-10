@@ -110,6 +110,8 @@ export const MalariaRegisterPage: React.FC<MalariaRegisterPageProps> = ({ onNavi
   const [editAge, setEditAge] = useState<string>('');
   const [editGender, setEditGender] = useState<GenderType>('पुरुष');
   const [editCollectionDate, setEditCollectionDate] = useState<string>('');
+  const [editTestResult, setEditTestResult] = useState<string>('');
+  const [editTestedOn, setEditTestedOn] = useState<string>('');
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -434,6 +436,8 @@ export const MalariaRegisterPage: React.FC<MalariaRegisterPageProps> = ({ onNavi
     setEditAge(String(sample.age));
     setEditGender(sample.gender);
     setEditCollectionDate(sample.sample_collection_date);
+    setEditTestResult(sample.test_result || '');
+    setEditTestedOn(sample.tested_on || '');
     setEditError(null);
   };
 
@@ -457,14 +461,26 @@ export const MalariaRegisterPage: React.FC<MalariaRegisterPageProps> = ({ onNavi
 
     try {
       setEditSaving(true);
-      await malariaService.updateSample(editingSample.id, {
+      const updatePayload: Partial<MalariaBloodSample> = {
         village_id: editVillageId,
         house_number: editHouseNumber.trim(),
         patient_name: editPatientName.trim(),
         age: ageVal,
         gender: editGender,
         sample_collection_date: editCollectionDate,
-      });
+      };
+
+      if (isPhcController) {
+        updatePayload.test_result = editTestResult || null;
+        updatePayload.tested_on = editTestedOn || null;
+        if (editTestResult) {
+          updatePayload.tested_by = user?.employeeId || null;
+        } else {
+          updatePayload.tested_by = null;
+        }
+      }
+
+      await malariaService.updateSample(editingSample.id, updatePayload);
 
       setEditingSample(null);
       const updatedList = await malariaService.getSamples();
@@ -1186,6 +1202,51 @@ export const MalariaRegisterPage: React.FC<MalariaRegisterPageProps> = ({ onNavi
                   />
                 </div>
               </div>
+
+              {isPhcController && (
+                <div className="mt-4 pt-3 border-t border-slate-200">
+                  <h4 className="font-bold text-slate-800 mb-2">अहवाल (Test Result)</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        रक्त नमुना अहवाल
+                      </label>
+                      <select
+                        value={editTestResult}
+                        onChange={(e) => {
+                          setEditTestResult(e.target.value);
+                          if (e.target.value && !editTestedOn) {
+                            setEditTestedOn(todayStr);
+                          }
+                        }}
+                        className="w-full py-2 px-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-emerald-600 focus:outline-none font-medium text-xs"
+                      >
+                        <option value="">-- प्रलंबित (Pending) --</option>
+                        <option value="Negative">Negative (निगेटिव्ह)</option>
+                        <option value="Positive (Pf)">Positive (Pf)</option>
+                        <option value="Positive (Pv)">Positive (Pv)</option>
+                        <option value="Positive (Mixed)">Positive (Mixed)</option>
+                        <option value="Equivocal">Equivocal/Invalid (अवैध)</option>
+                      </select>
+                    </div>
+                    {editTestResult && (
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                          तपासणी दिनांक
+                        </label>
+                        <input
+                          type="date"
+                          max={todayStr}
+                          value={editTestedOn}
+                          onChange={(e) => setEditTestedOn(e.target.value)}
+                          className="w-full py-2 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-none font-medium text-xs"
+                          required={!!editTestResult}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="pt-3 border-t border-slate-200 flex justify-end gap-2">
                 <button

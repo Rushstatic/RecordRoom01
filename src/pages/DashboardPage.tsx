@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { PageId, DashboardMetrics, MalariaBloodSample } from '../types';
 import { useAuth } from '../hooks/useAuth';
+import { getEmployeeProfileDisplay } from '../utils/employeeProfileHelper';
 import { masterDataService } from '../services/masterDataService';
 import { templateService } from '../services/templateService';
 import { RecordRegisterTemplate } from '../types';
@@ -49,8 +50,9 @@ interface DashboardPageProps {
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
-  const { user, role, applicableSubcentreIds } = useAuth();
+  const { user, userContext, role, applicableSubcentreIds } = useAuth();
   const isPhcController = role === 'phc_controller';
+  const empProfile = getEmployeeProfileDisplay(userContext, user);
 
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<DashboardMetrics>({
@@ -255,13 +257,36 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     return (
       <div className="space-y-6 pb-12 max-w-lg mx-auto p-2">
         {/* Simple Header */}
-        <div className="bg-gradient-to-r from-emerald-800 via-teal-900 to-emerald-950 rounded-2xl p-6 text-white shadow-md border border-emerald-700/80">
-          <h2 className="text-2xl font-bold tracking-tight">
-            नमस्कार, {user?.marathiName || user?.name || 'कर्मचारी'}
-          </h2>
-          <p className="text-sm text-emerald-100/90 mt-2">
-            आरोग्य उपकेंद्र - दैनिक कामकाज
-          </p>
+        <div className="bg-gradient-to-r from-emerald-800 via-teal-900 to-emerald-950 rounded-2xl p-5 sm:p-6 text-white shadow-md border border-emerald-700/80">
+          {empProfile.hasProfile ? (
+            <>
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
+                {empProfile.greeting}
+              </h2>
+              {(empProfile.designation || empProfile.subcentreName) && (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-emerald-100/90 mt-2 font-medium">
+                  {empProfile.designation && (
+                    <span>पद: <strong className="text-white">{empProfile.designation}</strong></span>
+                  )}
+                  {empProfile.designation && empProfile.subcentreName && (
+                    <span className="text-emerald-300/80">•</span>
+                  )}
+                  {empProfile.subcentreName && (
+                    <span>प्राथमिक उपकेंद्र: <strong className="text-white">{empProfile.subcentreName}</strong></span>
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-amber-200">
+                कर्मचारी माहिती उपलब्ध नाही
+              </h2>
+              <p className="text-xs sm:text-sm text-emerald-100/80 mt-1">
+                कृपया PHC नियंत्रकाशी संपर्क साधा किंवा पुन्हा लॉगिन करा.
+              </p>
+            </>
+          )}
         </div>
 
         {/* 1. 📝 आजची Data Entry */}

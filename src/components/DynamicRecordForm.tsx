@@ -31,7 +31,15 @@ export function DynamicRecordForm({
 }: Props) {
   const { user, userContext, isPhcController } = useAuth();
 
-  const [formData, setFormData] = useState<any>(initialData || {});
+  const [formData, setFormData] = useState<any>(() => {
+    const data = { ...initialData };
+    fields.forEach(f => {
+      if (f.field_type === 'result' && !data[f.field_key]) {
+        data[f.field_key] = 'Pending';
+      }
+    });
+    return data;
+  });
   const [subcentres, setSubcentres] = useState<Subcentre[]>([]);
   const [villages, setVillages] = useState<Village[]>([]);
   const [selectedSubcentreId, setSelectedSubcentreId] = useState<string>(
@@ -288,13 +296,13 @@ export function DynamicRecordForm({
                   />
                 ) : ['dropdown', 'result'].includes(f.field_type) ? (
                   <select
-                    disabled={readOnly}
-                    required={f.is_required && !isAuto}
-                    value={formData[f.field_key] || ''}
+                    disabled={readOnly || (f.field_type === 'result' && !isPhcController)}
+                    required={f.is_required && !isAuto && !(f.field_type === 'result' && !isPhcController)}
+                    value={formData[f.field_key] || (f.field_type === 'result' ? 'Pending' : '')}
                     onChange={e => setFormData({...formData, [f.field_key]: e.target.value})}
-                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-600 text-xs font-medium bg-white"
+                    className={`w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-600 text-xs font-medium ${f.field_type === 'result' && !isPhcController ? 'bg-slate-50 cursor-not-allowed' : 'bg-white'}`}
                   >
-                    <option value="">निवडा...</option>
+                    <option value={f.field_type === 'result' ? 'Pending' : ''}>{f.field_type === 'result' ? 'Pending' : 'निवडा...'}</option>
                     {options.map((opt, idx) => (
                       <option key={idx} value={opt.value}>{opt.label}</option>
                     ))}

@@ -372,6 +372,7 @@ export const MalariaAdvancedSearch: React.FC<Props> = ({
                     <th className="px-3 py-3 text-center">Sent Dt.</th>
                     <th className="px-3 py-3">Smear Code</th>
                     <th className="px-3 py-3 text-center">Status</th>
+                    <th className="px-3 py-3 text-center">Result</th>
                     <th className="px-3 py-3 text-center">Action</th>
                   </tr>
                 </thead>
@@ -394,6 +395,19 @@ export const MalariaAdvancedSearch: React.FC<Props> = ({
                            <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">Sent</span>
                         ) : (
                            <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">Pending</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        {item.test_result ? (
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            item.test_result.startsWith('Positive') ? 'bg-rose-100 text-rose-800' :
+                            item.test_result === 'Negative' ? 'bg-emerald-100 text-emerald-800' :
+                            'bg-slate-100 text-slate-800'
+                          }`}>
+                            {item.test_result}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 italic">Pending</span>
                         )}
                       </td>
                       <td className="px-3 py-2 text-center flex items-center justify-center gap-1.5">
@@ -444,6 +458,15 @@ export const MalariaAdvancedSearch: React.FC<Props> = ({
                          <span className="text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">Pending</span>
                        )}
                     </span>
+                    {item.test_result && (
+                      <span className={`font-bold px-1.5 py-0.5 rounded border ${
+                        item.test_result.startsWith('Positive') ? 'bg-rose-50 border-rose-200 text-rose-700' :
+                        item.test_result === 'Negative' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
+                        'bg-slate-50 border-slate-200 text-slate-700'
+                      }`}>
+                        {item.test_result}
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100">
                     <button onClick={() => setSelectedRecord(item)} className="flex-1 py-1.5 text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded text-center">
@@ -551,6 +574,32 @@ export const MalariaAdvancedSearch: React.FC<Props> = ({
                        {selectedRecord.sent_date ? formatDate(selectedRecord.sent_date) : 'Pending'}
                      </div>
                    </div>
+                 </div>
+
+                 <div className="grid grid-cols-2 gap-4 border-b border-slate-100 pb-4">
+                   <div className={`p-3 rounded-xl border ${
+                     selectedRecord.test_result?.startsWith('Positive') ? 'bg-rose-50 border-rose-200' :
+                     selectedRecord.test_result === 'Negative' ? 'bg-emerald-50 border-emerald-200' :
+                     'bg-slate-50 border-slate-200'
+                   }`}>
+                     <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5 text-slate-500">रक्त नमुना अहवाल</div>
+                     <div className={`text-sm font-black flex items-center gap-1.5 ${
+                       selectedRecord.test_result?.startsWith('Positive') ? 'text-rose-700' :
+                       selectedRecord.test_result === 'Negative' ? 'text-emerald-700' :
+                       'text-slate-700'
+                     }`}>
+                       {selectedRecord.test_result || 'Pending'}
+                     </div>
+                   </div>
+                   {selectedRecord.test_result && selectedRecord.tested_on && (
+                     <div className="p-3 rounded-xl border bg-slate-50 border-slate-200">
+                       <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5 text-slate-500">तपासणी दिनांक</div>
+                       <div className="text-sm font-black flex items-center gap-1.5 text-slate-700">
+                         <Calendar className="w-4 h-4 text-emerald-600" />
+                         {formatDate(selectedRecord.tested_on)}
+                       </div>
+                     </div>
+                   )}
                  </div>
 
                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">

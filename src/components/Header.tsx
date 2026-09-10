@@ -18,6 +18,7 @@ import { MyAccountModal } from './auth/MyAccountModal';
 import { NetworkStatusIndicator } from './NetworkStatusIndicator';
 import { SyncIndicator } from './SyncIndicator';
 import { NotificationBell } from './NotificationBell';
+import { getEmployeeProfileDisplay } from '../utils/employeeProfileHelper';
 
 interface HeaderProps {
   isSidebarOpen: boolean;
@@ -40,8 +41,11 @@ export const Header: React.FC<HeaderProps> = ({
   isAccountModalOpen: controlledModalOpen,
   setIsAccountModalOpen: setControlledModalOpen,
 }) => {
-  const { user, role, logout } = useAuth();
+  const { user, userContext, role, logout } = useAuth();
   const [internalModalOpen, setInternalModalOpen] = useState(false);
+
+  const isPhcController = role === 'phc_controller';
+  const empProfile = getEmployeeProfileDisplay(userContext, user);
 
   const isModalOpen = controlledModalOpen !== undefined ? controlledModalOpen : internalModalOpen;
   const setModalOpen = setControlledModalOpen || setInternalModalOpen;
@@ -179,25 +183,37 @@ export const Header: React.FC<HeaderProps> = ({
                 className="flex items-center gap-2 bg-white/10 hover:bg-white/15 px-2 sm:px-2.5 py-1.5 rounded-lg border border-white/10 transition-colors cursor-pointer text-left"
               >
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-amber-400 text-emerald-950 font-bold flex items-center justify-center text-xs shrink-0 shadow-xs">
-                  {role === 'phc_controller' ? (
+                  {isPhcController ? (
                     <ShieldCheck className="w-4 h-4 text-emerald-900" />
                   ) : (
                     <UserCheck className="w-4 h-4 text-emerald-900" />
                   )}
                 </div>
-                <div className="hidden lg:block text-left">
-                  <div className="text-xs font-semibold text-white leading-tight flex items-center gap-1.5">
-                    <span className="truncate max-w-[140px] font-bold">{user.marathiName || user.name}</span>
+                {isPhcController ? (
+                  <div className="hidden lg:block text-left">
+                    <div className="text-xs font-semibold text-white leading-tight flex items-center gap-1.5">
+                      <span className="truncate max-w-[140px] font-bold">{user.marathiName || user.name}</span>
+                    </div>
+                    <div className="text-[10px] text-amber-200 font-medium leading-none mt-0.5 truncate max-w-[140px] flex items-center gap-1">
+                      <span className="font-semibold text-amber-300">PHC नियंत्रक</span>
+                    </div>
                   </div>
-                  <div className="text-[10px] text-amber-200 font-medium leading-none mt-0.5 truncate max-w-[140px] flex items-center gap-1">
-                    <span className="font-semibold text-amber-300">
-                      {role === 'phc_controller' ? 'PHC नियंत्रक' : 'उपकेंद्र कर्मचारी'}
-                    </span>
-                    {user.assignedSubcentre && role !== 'phc_controller' && (
-                      <span className="text-white/75 truncate">• {user.assignedSubcentre}</span>
+                ) : (
+                  <div className="text-left max-w-[140px] sm:max-w-[200px]">
+                    <div className="text-xs font-bold text-white leading-tight truncate">
+                      {empProfile.hasProfile ? empProfile.greeting : 'कर्मचारी माहिती उपलब्ध नाही'}
+                    </div>
+                    {empProfile.hasProfile && (empProfile.designation || empProfile.subcentreName) && (
+                      <div className="text-[10px] text-amber-200 font-medium leading-none mt-0.5 truncate flex items-center gap-1">
+                        {empProfile.designation && <span>{empProfile.designation}</span>}
+                        {empProfile.designation && empProfile.subcentreName && (
+                          <span className="opacity-60">•</span>
+                        )}
+                        {empProfile.subcentreName && <span>उपकेंद्र: {empProfile.subcentreName}</span>}
+                      </div>
                     )}
                   </div>
-                </div>
+                )}
               </button>
             )}
 

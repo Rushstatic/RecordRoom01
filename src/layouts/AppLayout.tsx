@@ -10,6 +10,7 @@ import { MainNavTabId, getParentTabForPage, MAIN_NAV_TABS } from '../types/navig
 import { useAuth } from '../hooks/useAuth';
 import { offlineDraftService } from '../services/offlineDraftService';
 import { malariaService } from '../services/malariaService';
+import { getEmployeeProfileDisplay } from '../utils/employeeProfileHelper';
 import { Building2, Shield, HeartPulse } from 'lucide-react';
 
 interface AppLayoutProps {
@@ -25,7 +26,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
-  const { user, role } = useAuth();
+  const { user, userContext, role } = useAuth();
+  const empProfile = getEmployeeProfileDisplay(userContext, user);
 
   // Track the active primary tab: 'dashboard' | 'data-entry' | 'reports'
   const [currentTab, setCurrentTab] = useState<MainNavTabId>(() =>
@@ -189,7 +191,13 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
                 <Shield className="w-3 h-3 text-emerald-600" />
-                <span>{role === 'phc_controller' ? 'PHC नियंत्रक' : 'उपकेंद्र कर्मचारी'}</span>
+                <span>
+                  {role === 'phc_controller'
+                    ? 'PHC नियंत्रक'
+                    : empProfile.hasProfile
+                    ? (empProfile.subcentreName ? `उपकेंद्र: ${empProfile.subcentreName}` : empProfile.designation || 'आरोग्य उपकेंद्र')
+                    : 'कर्मचारी माहिती उपलब्ध नाही'}
+                </span>
               </span>
             </div>
           </div>

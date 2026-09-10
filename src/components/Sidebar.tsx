@@ -32,6 +32,7 @@ import {
 import { PageId } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { offlineDraftService } from '../services/offlineDraftService';
+import { getEmployeeProfileDisplay } from '../utils/employeeProfileHelper';
 
 interface SidebarProps {
   currentPage: PageId;
@@ -52,8 +53,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenNotifications,
   pendingSamplesCount = 0,
 }) => {
-  const { user, role, switchRole, logout } = useAuth();
+  const { user, userContext, role, logout } = useAuth();
   const isPhcController = role === 'phc_controller';
+  const empProfile = getEmployeeProfileDisplay(userContext, user);
 
   const [pendingDraftsCount, setPendingDraftsCount] = useState(() =>
     offlineDraftService.getSyncStats(user).pending
@@ -124,22 +126,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {isPhcController ? 'PHC' : 'SC'}
             </div>
             <div className="overflow-hidden flex-1">
-              <div className="flex items-center justify-between gap-1">
-                <span className="text-[10px] font-semibold text-emerald-900 uppercase tracking-wider">
-                  सध्याची भूमिका
-                </span>
-                <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold ${
-                  isPhcController ? 'bg-amber-400 text-slate-950' : 'bg-emerald-200 text-emerald-900'
-                }`}>
-                  {isPhcController ? 'PHC नियंत्रक' : 'उपकेंद्र कर्मचारी'}
-                </span>
-              </div>
-              <div className="text-xs font-bold text-slate-800 truncate mt-0.5">
-                {user?.marathiName || user?.name || 'वापरकर्ता'}
-              </div>
-              <div className="text-[11px] text-emerald-700 font-medium truncate">
-                {user?.assignedSubcentre || user?.assignedPhc || (isPhcController ? 'प्रा.आ.के. नियंत्रण' : 'आरोग्य उपकेंद्र')}
-              </div>
+              {isPhcController ? (
+                <>
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[10px] font-semibold text-emerald-900 uppercase tracking-wider">
+                      सध्याची भूमिका
+                    </span>
+                    <span className="text-[9px] px-1.5 py-0.2 rounded font-bold bg-amber-400 text-slate-950">
+                      PHC नियंत्रक
+                    </span>
+                  </div>
+                  <div className="text-xs font-bold text-slate-800 truncate mt-0.5">
+                    {user?.marathiName || user?.name || 'वापरकर्ता'}
+                  </div>
+                  <div className="text-[11px] text-emerald-700 font-medium truncate">
+                    {user?.assignedSubcentre || user?.assignedPhc || 'प्रा.आ.के. नियंत्रण'}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-xs font-bold text-slate-800 truncate">
+                    {empProfile.hasProfile ? empProfile.greeting : 'कर्मचारी माहिती उपलब्ध नाही'}
+                  </div>
+                  {empProfile.hasProfile && (
+                    <div className="text-[11px] text-emerald-700 font-medium truncate mt-0.5">
+                      {empProfile.designation && <span>{empProfile.designation}</span>}
+                      {empProfile.designation && empProfile.subcentreName && <span> • </span>}
+                      {empProfile.subcentreName && <span>{empProfile.subcentreName}</span>}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>

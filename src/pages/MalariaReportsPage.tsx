@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import {
-  BarChart3,
+import { 
+  Activity, XCircle, BarChart3,
   Calendar,
   Filter,
   Download,
@@ -23,7 +23,7 @@ import {
   CloudOff,
   ArrowRight,
 } from 'lucide-react';
-import {
+import { 
   PhcMaster,
   SubcentreMaster,
   VillageMaster,
@@ -31,22 +31,24 @@ import {
   MalariaBloodSample,
   PageId,
 } from '../types';
-import { useAuth } from '../hooks/useAuth';
-import { exportElementToPDF } from '../utils/pdfExport';
-import { useNetworkStatus } from '../hooks/useNetworkStatus';
-import { offlineDraftService } from '../services/offlineDraftService';
-import { masterDataService } from '../services/masterDataService';
-import {
+import {  useAuth } from '../hooks/useAuth';
+import {  exportElementToPDF } from '../utils/pdfExport';
+import {  useNetworkStatus } from '../hooks/useNetworkStatus';
+import {  offlineDraftService } from '../services/offlineDraftService';
+import { templateService } from '../services/templateService';
+import {  masterDataService } from '../services/masterDataService';
+import { 
   malariaService,
   formatIndianDate,
   formatSampleNumber,
   getTodayIso,
 } from '../services/malariaService';
-import {
+import { 
   MalariaPrintReportView,
   PrintReportMetadata,
 } from '../components/reports/MalariaPrintReportView';
-import { MalariaReportCharts } from '../components/reports/MalariaReportCharts';
+import {
+ MalariaReportCharts } from '../components/reports/MalariaReportCharts';
 
 interface MalariaReportsPageProps {
   onNavigate?: (page: PageId) => void;
@@ -138,18 +140,32 @@ export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNaviga
   // Pagination for Detailed Collection Table
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage, setItemsPerPage] = useState<number>(15);
+  
+  // Result Update states
+  const [resultFields, setResultFields] = useState<any[]>([]);
+  const [selectedResultFilter, setSelectedResultFilter] = useState<string>('all');
+  const [resultRecord, setResultRecord] = useState<MalariaBloodSample | null>(null);
+  const [resultUpdates, setResultUpdates] = useState<string>('');
+  const [successToast, setSuccessToast] = useState<string | null>(null);
+  
+  const [selectedRecords, setSelectedRecords] = useState<string[]>([]);
+  const [isBulkUpdateModalOpen, setIsBulkUpdateModalOpen] = useState(false);
 
   // Load All Data
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [phcList, scList, vilList, empList, rawSampleList] = await Promise.all([
+      const [phcList, scList, vilList, empList, rawSampleList, malariaTemplateFields] = await Promise.all([
         masterDataService.getPhcs(),
         masterDataService.getSubcentres(),
         masterDataService.getVillages(),
         masterDataService.getEmployees(),
         malariaService.getSamples(),
+        templateService.getTemplateFields('b2000000-0000-4000-8000-000000000001')
       ]);
+
+      const rFields = malariaTemplateFields.filter(f => f.field_type === 'result');
+      setResultFields(rFields);
 
       // Enforce user's authorized scope
       let filteredScList = scList;
@@ -295,9 +311,19 @@ export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNaviga
 
   // Search filtered for detailed collection table
   const finalCollectionSamples = useMemo(() => {
-    if (!searchQuery.trim()) return dateRangeFilteredSamples;
+    let result = dateRangeFilteredSamples;
+    
+    if (selectedResultFilter && selectedResultFilter !== 'all') {
+      if (selectedResultFilter === 'Pending') {
+        result = result.filter(r => !r.test_result || r.test_result === 'Pending');
+      } else {
+        result = result.filter(r => r.test_result === selectedResultFilter);
+      }
+    }
+
+    if (!searchQuery.trim()) return result;
     const q = searchQuery.toLowerCase().trim();
-    return dateRangeFilteredSamples.filter(
+    return result.filter(
       (s) =>
         s.patient_name.toLowerCase().includes(q) ||
         s.malaria_smear_code.toLowerCase().includes(q) ||
@@ -306,7 +332,58 @@ export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNaviga
         (s.employee_name && s.employee_name.toLowerCase().includes(q)) ||
         s.house_number.toLowerCase().includes(q)
     );
-  }, [dateRangeFilteredSamples, searchQuery]);
+  }, [dateRangeFilteredSamples, searchQuery, selectedResultFilter]);
+
+  const handleUpdateResult = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resultRecord) return;
+    try {
+      await malariaService.updateSample(resultRecord.id, {
+        test_result: resultUpdates,
+        tested_on: new Date().toISOString().split('T')[0],
+        tested_by: user?.employeeId || null,
+      });
+      setResultRecord(null);
+      loadData();
+      setSuccessToast('तपासणी निकाल यशस्वीरित्या जतन केला (Result saved successfully).');
+      setTimeout(() => setSuccessToast(null), 4000);
+    } catch (err: any) {
+      alert('Error updating result: ' + err.message);
+    }
+  };
+
+  const handleBulkUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selectedRecords.length === 0) return;
+    try {
+      await malariaService.bulkUpdateResults(
+        selectedRecords,
+        resultUpdates,
+        user?.employeeId || ''
+      );
+      setIsBulkUpdateModalOpen(false);
+      setSelectedRecords([]);
+      loadData();
+      setSuccessToast('तपासणी निकाल यशस्वीरित्या जतन केले (Bulk results saved successfully).');
+      setTimeout(() => setSuccessToast(null), 4000);
+    } catch (err: any) {
+      alert('Error updating results: ' + err.message);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedRecords.length === finalCollectionSamples.length) {
+      setSelectedRecords([]);
+    } else {
+      setSelectedRecords(finalCollectionSamples.map(r => r.id));
+    }
+  };
+
+  const toggleSelectRecord = (id: string) => {
+    setSelectedRecords(prev => 
+      prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]
+    );
+  };
 
   // Pagination for Collection Table
   const totalPages = Math.ceil(finalCollectionSamples.length / itemsPerPage) || 1;
@@ -1174,6 +1251,16 @@ export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNaviga
             </div>
 
             <div className="flex items-center gap-2">
+              {selectedRecords.length > 0 && isPhcController && (
+                <button 
+                  onClick={() => setIsBulkUpdateModalOpen(true)}
+                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs flex items-center gap-1.5 transition-colors animate-in fade-in"
+                >
+                  <Activity className="w-3.5 h-3.5" />
+                  Update ({selectedRecords.length})
+                </button>
+              )}
+              
               <div className="relative w-full sm:w-64">
                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                 <input
@@ -1187,13 +1274,79 @@ export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNaviga
                   className="w-full text-xs pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-emerald-600 focus:border-emerald-600"
                 />
               </div>
+              
+              {resultFields.map(f => {
+                let opts: any[] = [];
+                try {
+                  opts = typeof f.options_json === 'string' ? JSON.parse(f.options_json) : (f.options_json || []);
+                } catch(e) {}
+                return (
+                  <select
+                    key={f.id}
+                    value={selectedResultFilter}
+                    onChange={e => {
+                      setSelectedResultFilter(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="w-full sm:w-auto text-xs px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-teal-700 font-medium"
+                  >
+                    <option value="all">सर्व {f.field_label}</option>
+                    <option value="Pending">Pending</option>
+                    {opts.map((opt: any, idx: number) => (
+                      <option key={idx} value={opt.value || opt.label}>{opt.label}</option>
+                    ))}
+                  </select>
+                );
+              })}
             </div>
           </div>
+          
+          {/* Result Summaries */}
+          {resultFields.length > 0 && (
+            <div className="flex flex-wrap gap-4 mt-2 pt-2 border-t border-slate-200 bg-slate-50/50 p-3 rounded-b-xl">
+              {resultFields.map(f => {
+                let opts: any[] = [];
+                try {
+                  opts = typeof f.options_json === 'string' ? JSON.parse(f.options_json) : (f.options_json || []);
+                } catch(e) {}
+                
+                const pendingCount = dateRangeFilteredSamples.filter(s => !s.test_result || s.test_result === 'Pending').length;
+                
+                return (
+                  <div key={`summary-${f.id}`} className="flex flex-wrap items-center gap-2 text-xs font-medium">
+                    <span className="text-slate-700 font-bold mr-1">{f.field_label} Summary:</span>
+                    <span className="bg-amber-100 text-amber-800 px-2 py-1 rounded shadow-sm border border-amber-200">
+                      Pending: {pendingCount}
+                    </span>
+                    {opts.map((opt: any, idx: number) => {
+                      const count = dateRangeFilteredSamples.filter(s => s.test_result === (opt.value || opt.label)).length;
+                      if (count === 0) return null;
+                      return (
+                        <span key={idx} className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded shadow-sm border border-emerald-200">
+                          {opt.label}: {count}
+                        </span>
+                      )
+                    })}
+                  </div>
+                )
+              })}
+            </div>
+          )}
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-700">
               <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 uppercase text-[10px]">
                 <tr>
+                  {isPhcController && (
+                    <th className="px-3 py-3 w-10 text-center">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedRecords.length > 0 && selectedRecords.length === finalCollectionSamples.length}
+                        onChange={toggleSelectAll}
+                        className="w-3.5 h-3.5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
+                      />
+                    </th>
+                  )}
                   <th className="px-3 py-3 w-10 text-center">अ.क्र.</th>
                   <th className="px-3 py-3">PHC</th>
                   <th className="px-3 py-3">उपकेंद्र</th>
@@ -1208,12 +1361,13 @@ export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNaviga
                   <th className="px-3 py-3 text-center font-mono">रक्त नमुना क्र.</th>
                   <th className="px-3 py-3">पाठविल्याचा दिनांक</th>
                   <th className="px-3 py-3 text-center">स्थिती</th>
+                  {resultFields.length > 0 && <th className="px-3 py-3 text-center">निकाल (Result)</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
                 {paginatedCollectionSamples.length === 0 ? (
                   <tr>
-                    <td colSpan={14} className="px-4 py-8 text-center text-slate-400 italic">
+                    <td colSpan={resultFields.length > 0 ? (isPhcController ? 16 : 15) : (isPhcController ? 15 : 14)} className="px-4 py-8 text-center text-slate-400 italic">
                       या कालावधीसाठी कोणतीही नोंद उपलब्ध नाही.
                     </td>
                   </tr>
@@ -1221,7 +1375,17 @@ export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNaviga
                   paginatedCollectionSamples.map((s, idx) => {
                     const rowNum = (currentPage - 1) * itemsPerPage + idx + 1;
                     return (
-                      <tr key={s.id} className="hover:bg-slate-50 transition-colors">
+                      <tr key={s.id} className={`hover:bg-slate-50 transition-colors ${selectedRecords.includes(s.id) ? 'bg-emerald-50/50' : ''}`}>
+                        {isPhcController && (
+                          <td className="px-3 py-2.5 text-center">
+                            <input 
+                              type="checkbox" 
+                              checked={selectedRecords.includes(s.id)}
+                              onChange={() => toggleSelectRecord(s.id)}
+                              className="w-3.5 h-3.5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
+                            />
+                          </td>
+                        )}
                         <td className="px-3 py-2.5 text-center font-mono text-slate-500">{rowNum}</td>
                         <td className="px-3 py-2.5 text-slate-900 font-medium">{s.phc_name || '-'}</td>
                         <td className="px-3 py-2.5 text-slate-800">{s.subcentre_name || '-'}</td>
@@ -1274,6 +1438,27 @@ export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNaviga
                             </span>
                           )}
                         </td>
+                        {resultFields.length > 0 && (
+                          <td className="px-3 py-2.5 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <span className={`px-2 py-1 rounded text-xs font-semibold ${!s.test_result || s.test_result === 'Pending' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                {!s.test_result || s.test_result === 'Pending' ? 'Pending' : s.test_result}
+                              </span>
+                              {(role === 'phc_controller' || user?.role === 'phc_controller') && (
+                                <button
+                                  onClick={() => {
+                                    setResultRecord(s);
+                                    setResultUpdates(s.test_result || 'Pending');
+                                  }}
+                                  className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"
+                                  title="निकाल अद्यतनित करा"
+                                >
+                                  <Activity className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     );
                   })
@@ -1935,6 +2120,137 @@ export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNaviga
         monthlyStats={monthlyStats}
         dailyStats={dailyStats}
       />
+      {/* Update Result Modal */}
+      {resultRecord && resultFields.length > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">नोंद दुरुस्ती / Update Result</h3>
+                <p className="text-xs text-slate-500 mt-0.5">{resultRecord.patient_name} - {resultRecord.malaria_smear_code}</p>
+              </div>
+              <button onClick={() => setResultRecord(null)} className="p-1 text-slate-400 hover:text-slate-700">
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleUpdateResult} className="p-5 space-y-4">
+              {resultFields.map(f => {
+                let options = [];
+                try {
+                  options = typeof f.options_json === 'string' ? JSON.parse(f.options_json) : (f.options_json || []);
+                } catch(e) {}
+                
+                return (
+                  <div key={f.id}>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      {f.field_label}
+                    </label>
+                    <select
+                      value={resultUpdates || 'Pending'}
+                      onChange={(e) => setResultUpdates(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                      required
+                    >
+                      <option value="Pending">Pending (प्रलंबित)</option>
+                      {options.map((opt: any, i: number) => (
+                        <option key={i} value={opt.value || opt.label}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              })}
+              
+              <div className="pt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setResultRecord(null)}
+                  className="flex-1 px-4 py-2 text-sm font-bold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors"
+                >
+                  रद्द करा
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 text-sm font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition-colors shadow-sm"
+                >
+                  सेव्ह करा (Save)
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Update Result Modal */}
+      {isBulkUpdateModalOpen && resultFields.length > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">सामूहिक नोंद दुरुस्ती / Bulk Update Results</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  एकूण {selectedRecords.length} नोंदी अद्यतनित केल्या जात आहेत
+                </p>
+              </div>
+              <button onClick={() => setIsBulkUpdateModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-700">
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleBulkUpdate} className="p-5 space-y-4">
+              {resultFields.map(f => {
+                let options = [];
+                try {
+                  options = typeof f.options_json === 'string' ? JSON.parse(f.options_json) : (f.options_json || []);
+                } catch(e) {}
+                
+                return (
+                  <div key={`bulk-${f.id}`}>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      {f.field_label} (सर्वांसाठी)
+                    </label>
+                    <select
+                      value={resultUpdates || 'Pending'}
+                      onChange={(e) => setResultUpdates(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                      required
+                    >
+                      <option value="Pending">Pending (प्रलंबित)</option>
+                      {options.map((opt: any, i: number) => (
+                        <option key={i} value={opt.value || opt.label}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              })}
+              
+              <div className="pt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsBulkUpdateModalOpen(false)}
+                  className="flex-1 px-4 py-2 text-sm font-bold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors"
+                >
+                  रद्द करा
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 text-sm font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition-colors shadow-sm"
+                >
+                  सामूहिक बदल करा (Update All)
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {successToast && (
+        <div className="fixed bottom-4 right-4 z-[60] bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4">
+          <CheckCircle2 className="w-5 h-5" />
+          <span className="font-medium text-sm">{successToast}</span>
+        </div>
+      )}
     </div>
   );
 };

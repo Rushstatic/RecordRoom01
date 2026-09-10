@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { PageId, TBPatientRecord } from '../types';
+import { templateService } from '../services/templateService';
 import { tbService, formatIndianDate } from '../services/tbService';
 import { masterDataService } from '../services/masterDataService';
-import { Download, Printer, Search, Filter, Activity, FileSpreadsheet, FileText } from 'lucide-react';
+import { Download, Printer, Search, Filter, Activity, FileSpreadsheet, FileText, XCircle, CheckCircle2 } from 'lucide-react';
 import { exportElementToPDF } from '../utils/pdfExport';
 import { useAuth } from '../hooks/useAuth';
 
@@ -23,13 +24,24 @@ export const TBReportsPage: React.FC<TBReportsPageProps> = ({ onNavigate }) => {
   const [selectedLocation, setSelectedLocation] = useState('');
   const [villages, setVillages] = useState<any[]>([]);
 
+  const [resultFields, setResultFields] = useState<any[]>([]);
+  const [selectedResult, setSelectedResult] = useState('all');
+  
+  const [resultRecord, setResultRecord] = useState<TBPatientRecord | null>(null);
+  const [resultUpdates, setResultUpdates] = useState<string>('');
+  const [successToast, setSuccessToast] = useState<string | null>(null);
+  const isPhcController = role === 'phc_controller' || user?.role === 'phc_controller';
+
+  const [selectedRecords, setSelectedRecords] = useState<string[]>([]);
+  const [isBulkUpdateModalOpen, setIsBulkUpdateModalOpen] = useState(false);
+
   useEffect(() => {
     loadData();
   }, []);
 
   useEffect(() => {
     applyFilters();
-  }, [searchTerm, selectedVillage, selectedSampleType, selectedLocation, records]);
+  }, [searchTerm, selectedVillage, selectedSampleType, selectedLocation, selectedResult, records]);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -42,6 +54,10 @@ export const TBReportsPage: React.FC<TBReportsPageProps> = ({ onNavigate }) => {
         filter = { phc_id: user.phcId };
       }
       const data = await tbService.getSamples(filter);
+      
+      const tbFields = await templateService.getTemplateFields('b2000000-0000-4000-8000-000000000002');
+      const rFields = tbFields.filter(f => f.field_type === 'result');
+      setResultFields(rFields);
       
       // Additional client-side role filtering just in case
       let finalData = data;
@@ -82,7 +98,66 @@ export const TBReportsPage: React.FC<TBReportsPageProps> = ({ onNavigate }) => {
       result = result.filter(r => r.sample_given_at === selectedLocation);
     }
 
+    if (selectedResult && selectedResult !== 'all') {
+      if (selectedResult === 'Pending') {
+        result = result.filter(r => !r.test_result || r.test_result === 'Pending');
+      } else {
+        result = result.filter(r => r.test_result === selectedResult);
+      }
+    }
+
     setFilteredRecords(result);
+  };
+
+  const handleUpdateResult = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resultRecord) return;
+    try {
+      await tbService.updateSample(resultRecord.id, {
+        test_result: resultUpdates,
+        tested_on: new Date().toISOString().split('T')[0],
+        tested_by: user?.employeeId || null,
+      });
+      setResultRecord(null);
+      loadData();
+      setSuccessToast('तपासणी निकाल यशस्वीरित्या जतन केला (Result saved successfully).');
+      setTimeout(() => setSuccessToast(null), 4000);
+    } catch (err: any) {
+      alert('Error updating result: ' + err.message);
+    }
+  };
+
+  const handleBulkUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selectedRecords.length === 0) return;
+    try {
+      await tbService.bulkUpdateResults(
+        selectedRecords,
+        resultUpdates,
+        user?.employeeId || ''
+      );
+      setIsBulkUpdateModalOpen(false);
+      setSelectedRecords([]);
+      loadData();
+      setSuccessToast('तपासणी निकाल यशस्वीरित्या जतन केले (Bulk results saved successfully).');
+      setTimeout(() => setSuccessToast(null), 4000);
+    } catch (err: any) {
+      alert('Error updating results: ' + err.message);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedRecords.length === filteredRecords.length) {
+      setSelectedRecords([]);
+    } else {
+      setSelectedRecords(filteredRecords.map(r => r.id));
+    }
+  };
+
+  const toggleSelectRecord = (id: string) => {
+    setSelectedRecords(prev => 
+      prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]
+    );
   };
 
   const exportCSV = () => {
@@ -202,6 +277,15 @@ export const TBReportsPage: React.FC<TBReportsPageProps> = ({ onNavigate }) => {
           </div>
         </div>
         <div className="flex gap-2">
+          {selectedRecords.length > 0 && (
+            <button 
+              onClick={() => setIsBulkUpdateModalOpen(true)}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-sm flex items-center gap-2 transition-colors animate-in fade-in"
+            >
+              <Activity className="w-4 h-4" />
+              Update Selected ({selectedRecords.length})
+            </button>
+          )}
           <button onClick={exportCSV} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-sm flex items-center gap-2 cursor-pointer transition-colors">
             <Download className="w-4 h-4" /> CSV Export
           </button>
@@ -247,7 +331,59 @@ export const TBReportsPage: React.FC<TBReportsPageProps> = ({ onNavigate }) => {
             <option value="PHC_BHADA">PHC भादा</option>
             <option value="RURAL_HOSPITAL_AUSA">ग्रामीण रुग्णालय औसा</option>
           </select>
+          {resultFields.map(f => {
+            let opts: any[] = [];
+            try {
+              opts = typeof f.options_json === 'string' ? JSON.parse(f.options_json) : (f.options_json || []);
+            } catch(e) {}
+            return (
+              <select
+                key={f.id}
+                value={selectedResult}
+                onChange={e => setSelectedResult(e.target.value)}
+                className="w-full p-2 text-sm border border-slate-300 rounded-lg text-teal-700 font-medium"
+              >
+                <option value="all">सर्व {f.field_label}</option>
+                <option value="Pending">Pending</option>
+                {opts.map((opt: any, idx: number) => (
+                  <option key={idx} value={opt.value || opt.label}>{opt.label}</option>
+                ))}
+              </select>
+            );
+          })}
         </div>
+
+        {/* Result Summaries */}
+        {resultFields.length > 0 && (
+          <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-slate-200">
+            {resultFields.map(f => {
+              let opts: any[] = [];
+              try {
+                opts = typeof f.options_json === 'string' ? JSON.parse(f.options_json) : (f.options_json || []);
+              } catch(e) {}
+              
+              const pendingCount = filteredRecords.filter(r => !r.test_result || r.test_result === 'Pending').length;
+              
+              return (
+                <div key={`summary-${f.id}`} className="flex flex-wrap items-center gap-2 text-xs font-medium">
+                  <span className="text-slate-700 font-bold mr-1">{f.field_label} Summary:</span>
+                  <span className="bg-amber-100 text-amber-800 px-2 py-1 rounded shadow-sm border border-amber-200">
+                    Pending: {pendingCount}
+                  </span>
+                  {opts.map((opt: any, idx: number) => {
+                    const count = filteredRecords.filter(r => r.test_result === (opt.value || opt.label)).length;
+                    if (count === 0) return null;
+                    return (
+                      <span key={idx} className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded shadow-sm border border-emerald-200">
+                        {opt.label}: {count}
+                      </span>
+                    )
+                  })}
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
@@ -255,22 +391,43 @@ export const TBReportsPage: React.FC<TBReportsPageProps> = ({ onNavigate }) => {
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="bg-slate-50 border-b border-slate-200 text-xs text-slate-600 font-bold uppercase tracking-wider">
               <tr>
+                {isPhcController && (
+                  <th className="px-4 py-3 text-center w-12">
+                    <input 
+                      type="checkbox" 
+                      checked={selectedRecords.length > 0 && selectedRecords.length === filteredRecords.length}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
+                    />
+                  </th>
+                )}
                 <th className="px-4 py-3">संशयित रुग्णाचे नाव</th>
                 <th className="px-4 py-3 text-center">वय / लिंग</th>
                 <th className="px-4 py-3">निक्षय ID</th>
                 <th className="px-4 py-3 text-center">नमुना दिनांक</th>
                 <th className="px-4 py-3 text-center">प्रकार</th>
                 <th className="px-4 py-3">कोठे दिला</th>
+                {resultFields.length > 0 && <th className="px-4 py-3 text-center">निकाल (Result)</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {isLoading ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500">माहिती लोड होत आहे...</td></tr>
+                <tr><td colSpan={resultFields.length > 0 ? (isPhcController ? 8 : 7) : (isPhcController ? 7 : 6)} className="px-4 py-8 text-center text-slate-500">माहिती लोड होत आहे...</td></tr>
               ) : filteredRecords.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500">कोणतीही नोंद आढळली नाही.</td></tr>
+                <tr><td colSpan={resultFields.length > 0 ? (isPhcController ? 8 : 7) : (isPhcController ? 7 : 6)} className="px-4 py-8 text-center text-slate-500">कोणतीही नोंद आढळली नाही.</td></tr>
               ) : (
                 filteredRecords.map((r, i) => (
-                  <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
+                  <tr key={r.id} className={`hover:bg-slate-50/50 transition-colors ${selectedRecords.includes(r.id) ? 'bg-emerald-50/50' : ''}`}>
+                    {isPhcController && (
+                      <td className="px-4 py-3 text-center">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedRecords.includes(r.id)}
+                          onChange={() => toggleSelectRecord(r.id)}
+                          className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
+                        />
+                      </td>
+                    )}
                     <td className="px-4 py-3 font-medium text-slate-800">
                       {r.patient_name}
                       {r.mobile_number && <div className="text-xs text-slate-500 font-normal">{r.mobile_number}</div>}
@@ -284,16 +441,33 @@ export const TBReportsPage: React.FC<TBReportsPageProps> = ({ onNavigate }) => {
                     <td className="px-4 py-3 text-center text-slate-600">
                       {formatIndianDate(r.sample_collection_date)}
                     </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`inline-block px-2 py-1 rounded text-xs font-semibold \${
-                        r.sample_type === 'FoodBasket' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
-                      }`}>
-                        {r.sample_type}
-                      </span>
+                    <td className="px-4 py-3 text-center text-slate-600">
+                      <span className="bg-slate-100 px-2 py-1 rounded text-xs">{r.sample_type}</span>
                     </td>
-                    <td className="px-4 py-3 text-slate-600 text-xs">
-                      {r.sample_given_at === 'PHC_BHADA' ? 'PHC भादा' : r.sample_given_at === 'RURAL_HOSPITAL_AUSA' ? 'RH औसा' : '-'}
+                    <td className="px-4 py-3 text-xs text-slate-600 truncate max-w-[150px]">
+                      {r.sample_given_at === 'PHC_BHADA' ? 'PHC भादा' : r.sample_given_at === 'RURAL_HOSPITAL_AUSA' ? 'ग्रा.रु. औसा' : '-'}
                     </td>
+                    {resultFields.length > 0 && (
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <span className={`px-2 py-1 rounded text-xs font-semibold ${!r.test_result || r.test_result === 'Pending' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                            {!r.test_result || r.test_result === 'Pending' ? 'Pending' : r.test_result}
+                          </span>
+                          {isPhcController && (
+                            <button
+                              onClick={() => {
+                                setResultRecord(r);
+                                setResultUpdates(r.test_result || 'Pending');
+                              }}
+                              className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"
+                              title="निकाल अद्यतनित करा"
+                            >
+                              <Activity className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
@@ -301,6 +475,141 @@ export const TBReportsPage: React.FC<TBReportsPageProps> = ({ onNavigate }) => {
           </table>
         </div>
       </div>
+
+      {/* Update Result Modal */}
+      {resultRecord && resultFields.length > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">नोंद दुरुस्ती / Update Result</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {resultRecord.patient_name} 
+                  {resultRecord.nikshay_id ? ` - ${resultRecord.nikshay_id}` : ''}
+                </p>
+              </div>
+              <button onClick={() => setResultRecord(null)} className="p-1 text-slate-400 hover:text-slate-700">
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleUpdateResult} className="p-5 space-y-4">
+              {resultFields.map(f => {
+                let options = [];
+                try {
+                  options = typeof f.options_json === 'string' ? JSON.parse(f.options_json) : (f.options_json || []);
+                } catch(e) {}
+                
+                return (
+                  <div key={f.id}>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      {f.field_label}
+                    </label>
+                    <select
+                      value={resultUpdates || 'Pending'}
+                      onChange={(e) => setResultUpdates(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                      required
+                    >
+                      <option value="Pending">Pending (प्रलंबित)</option>
+                      {options.map((opt: any, i: number) => (
+                        <option key={i} value={opt.value || opt.label}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              })}
+              
+              <div className="pt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setResultRecord(null)}
+                  className="flex-1 px-4 py-2 text-sm font-bold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors"
+                >
+                  रद्द करा
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 text-sm font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition-colors shadow-sm"
+                >
+                  सेव्ह करा (Save)
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Update Result Modal */}
+      {isBulkUpdateModalOpen && resultFields.length > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">सामूहिक नोंद दुरुस्ती / Bulk Update Results</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  एकूण {selectedRecords.length} नोंदी अद्यतनित केल्या जात आहेत
+                </p>
+              </div>
+              <button onClick={() => setIsBulkUpdateModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-700">
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleBulkUpdate} className="p-5 space-y-4">
+              {resultFields.map(f => {
+                let options = [];
+                try {
+                  options = typeof f.options_json === 'string' ? JSON.parse(f.options_json) : (f.options_json || []);
+                } catch(e) {}
+                
+                return (
+                  <div key={`bulk-${f.id}`}>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      {f.field_label} (सर्वांसाठी)
+                    </label>
+                    <select
+                      value={resultUpdates || 'Pending'}
+                      onChange={(e) => setResultUpdates(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                      required
+                    >
+                      <option value="Pending">Pending (प्रलंबित)</option>
+                      {options.map((opt: any, i: number) => (
+                        <option key={i} value={opt.value || opt.label}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              })}
+              
+              <div className="pt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsBulkUpdateModalOpen(false)}
+                  className="flex-1 px-4 py-2 text-sm font-bold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors"
+                >
+                  रद्द करा
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 text-sm font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition-colors shadow-sm"
+                >
+                  सामूहिक बदल करा (Update All)
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {successToast && (
+        <div className="fixed bottom-4 right-4 z-[60] bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4">
+          <CheckCircle2 className="w-5 h-5" />
+          <span className="font-medium text-sm">{successToast}</span>
+        </div>
+      )}
     </div>
   );
 };
