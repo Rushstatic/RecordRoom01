@@ -130,7 +130,7 @@ export const Header: React.FC<HeaderProps> = ({
                   {tab.id === 'dashboard' && <LayoutDashboard className="w-4 h-4" />}
                   <span>
                     {tab.id === 'data-entry'
-                      ? '📝 Data Entry'
+                      ? '📝 Daily Work'
                       : tab.id === 'reports'
                       ? '📊 Reports'
                       : tab.id === 'admin'

@@ -78,7 +78,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                 }`}
               >
                 {tab.id === 'data-entry'
-                  ? '📝 Data Entry'
+                  ? '📝 Daily Work'
                   : tab.id === 'reports'
                   ? '📊 Reports'
                   : tab.id === 'admin'

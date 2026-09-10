@@ -13,6 +13,14 @@ export interface MainNavTabItem {
 
 export const MAIN_NAV_TABS_SUBCENTRE: MainNavTabItem[] = [
   {
+    id: 'dashboard',
+    labelMarathi: 'डॅशबोर्ड',
+    labelEnglish: 'Dashboard',
+    iconName: 'LayoutDashboard',
+    defaultPage: 'dashboard',
+    descriptionMarathi: 'एकूण सांख्यिकी व सारांश',
+  },
+  {
     id: 'data-entry',
     labelMarathi: 'Data Entry',
     labelEnglish: 'Data Entry',
@@ -31,6 +39,14 @@ export const MAIN_NAV_TABS_SUBCENTRE: MainNavTabItem[] = [
 ];
 
 export const MAIN_NAV_TABS_PHC_CONTROLLER: MainNavTabItem[] = [
+  {
+    id: 'dashboard',
+    labelMarathi: 'डॅशबोर्ड',
+    labelEnglish: 'Dashboard',
+    iconName: 'LayoutDashboard',
+    defaultPage: 'dashboard',
+    descriptionMarathi: 'एकूण सांख्यिकी व सारांश',
+  },
   {
     id: 'data-entry',
     labelMarathi: 'Data Entry',
@@ -262,7 +278,7 @@ export function getParentTabForPage(page: PageId, currentTabPreference?: MainNav
   if (inDataEntry) return 'data-entry';
 
   if (page === 'dashboard') {
-    return currentTabPreference || 'data-entry';
+    return 'dashboard';
   }
 
   return 'data-entry';
