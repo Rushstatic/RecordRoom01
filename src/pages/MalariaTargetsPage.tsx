@@ -22,6 +22,7 @@ import {
   ChevronDown,
   X,
   FileSpreadsheet,
+ Save,
 } from 'lucide-react';
 import {
   PageId,
@@ -86,6 +87,14 @@ export const MalariaTargetsPage: React.FC<MalariaTargetsPageProps> = ({ onNaviga
   const [activeTab, setActiveTab] = useState<TabType>('villages');
 
   // Filter state
+
+  const availableSubcentres = subcentres.filter(s => !selectedPhcId || s.phc_id === selectedPhcId);
+  const availableVillages = villages.filter(v => !selectedSubcentreId || v.subcentre_id === selectedSubcentreId);
+  const availableEmployees = employees.filter(e => !selectedSubcentreId || e.primary_subcentre_id === selectedSubcentreId);
+  const activeProgressItems = targets;
+  
+  const handleSaveTarget = async () => {};
+
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
 
@@ -100,6 +109,11 @@ export const MalariaTargetsPage: React.FC<MalariaTargetsPageProps> = ({ onNaviga
   const [sortOption, setSortOption] = useState<SortOption>('progress-desc');
 
   // Modal states
+    const [targetLevel, setTargetLevel] = useState<'phc' | 'subcentre' | 'village' | 'employee'>('village');
+  const [selectedPhcId, setSelectedPhcId] = useState<string>('');
+  const [selectedSubcentreId, setSelectedSubcentreId] = useState<string>('');
+  const [targetValue, setTargetValue] = useState<number>(0);
+  const [savingTarget, setSavingTarget] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [targetToEdit, setTargetToEdit] = useState<MalariaTarget | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
@@ -168,7 +182,8 @@ export const MalariaTargetsPage: React.FC<MalariaTargetsPageProps> = ({ onNaviga
     setSearchQuery('');
     setSortOption('progress-desc');
 
-    if (isPhcController) {
+  
+  if (isPhcController) {
       ((_: any) => {})('');
       ((_: any) => {})('');
       setSelectedVillageId('');
@@ -906,6 +921,180 @@ export const MalariaTargetsPage: React.FC<MalariaTargetsPageProps> = ({ onNaviga
       : activeTab === 'phcs'
       ? 'PHC-निहाय उद्दिष्ट व कामगिरी'
       : 'गावनिहाय उद्दिष्ट व House Coverage प्रगती';
+
+  if (isPhcController) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-4 pb-12 p-4">
+        <h1 className="text-xl font-bold text-slate-900 mb-2">मलेरिया रक्त नमुना लक्ष्य</h1>
+  
+        <div className="bg-white p-4 rounded-xl shadow-xs border border-slate-200">
+          <h2 className="text-sm font-bold text-slate-700 mb-3">1. Target Type</h2>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setFilterType('Monthly')}
+              className={`flex-1 py-2 rounded-lg font-bold text-xs border transition-colors cursor-pointer ${filterType === 'Monthly' ? 'bg-emerald-100 border-emerald-500 text-emerald-900 shadow-xs' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setFilterType('Yearly')}
+              className={`flex-1 py-2 rounded-lg font-bold text-xs border transition-colors cursor-pointer ${filterType === 'Yearly' ? 'bg-emerald-100 border-emerald-500 text-emerald-900 shadow-xs' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}
+            >
+              Yearly
+            </button>
+          </div>
+        </div>
+  
+        <div className="bg-white p-4 rounded-xl shadow-xs border border-slate-200">
+          <h2 className="text-sm font-bold text-slate-700 mb-3">2. Target Level</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {['phc', 'subcentre', 'village', 'employee'].map(level => (
+              <button
+                key={level}
+                onClick={() => {
+                  setTargetLevel(level as 'phc' | 'subcentre' | 'village' | 'employee');
+                  setSelectedPhcId('');
+                  setSelectedSubcentreId('');
+                  setSelectedVillageId('');
+                  setSelectedEmployeeId('');
+                }}
+                className={`py-2 rounded-lg font-bold text-xs border capitalize transition-colors cursor-pointer ${targetLevel === level ? 'bg-emerald-100 border-emerald-500 text-emerald-900 shadow-xs' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}
+              >
+                {level}
+              </button>
+            ))}
+          </div>
+        </div>
+  
+        <div className="bg-white p-4 rounded-xl shadow-xs border border-slate-200">
+          <h2 className="text-sm font-bold text-slate-700 mb-3">3. Target Config</h2>
+          
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">PHC</label>
+                <select className="w-full border border-slate-300 rounded-lg py-2 px-3 text-xs bg-white focus:ring-2 focus:ring-emerald-700 focus:outline-hidden cursor-pointer" value={selectedPhcId} onChange={e => setSelectedPhcId(e.target.value)}>
+                  <option value="">Select PHC</option>
+                  {phcs.map(p => <option key={p.id} value={p.id}>{p.phc_name}</option>)}
+                </select>
+              </div>
+  
+              {(targetLevel === 'subcentre' || targetLevel === 'village' || targetLevel === 'employee') && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Subcentre</label>
+                  <select className="w-full border border-slate-300 rounded-lg py-2 px-3 text-xs bg-white focus:ring-2 focus:ring-emerald-700 focus:outline-hidden cursor-pointer" value={selectedSubcentreId} onChange={e => setSelectedSubcentreId(e.target.value)}>
+                    <option value="">Select Subcentre</option>
+                    {availableSubcentres.map(s => <option key={s.id} value={s.id}>{s.subcentre_name}</option>)}
+                  </select>
+                </div>
+              )}
+  
+              {targetLevel === 'village' && (
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Village</label>
+                  <select className="w-full border border-slate-300 rounded-lg py-2 px-3 text-xs bg-white focus:ring-2 focus:ring-emerald-700 focus:outline-hidden cursor-pointer" value={selectedVillageId} onChange={e => setSelectedVillageId(e.target.value)}>
+                    <option value="">Select Village</option>
+                    {availableVillages.map(v => <option key={v.id} value={v.id}>{v.village_name}</option>)}
+                  </select>
+                </div>
+              )}
+  
+              {targetLevel === 'employee' && (
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Employee</label>
+                  <select className="w-full border border-slate-300 rounded-lg py-2 px-3 text-xs bg-white focus:ring-2 focus:ring-emerald-700 focus:outline-hidden cursor-pointer" value={selectedEmployeeId} onChange={e => setSelectedEmployeeId(e.target.value)}>
+                    <option value="">Select Employee</option>
+                    {availableEmployees.map(e => <option key={e.id} value={e.id}>{e.employee_name}</option>)}
+                  </select>
+                </div>
+              )}
+            </div>
+  
+            <div className="border-t border-slate-100 my-3"></div>
+  
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Period (Year)</label>
+                <select className="w-full border border-slate-300 rounded-lg py-2 px-3 text-xs bg-white focus:ring-2 focus:ring-emerald-700 focus:outline-hidden cursor-pointer" value={filterYear} onChange={e => setFilterYear(Number(e.target.value))}>
+                  {[2024, 2025, 2026, 2027, 2028].map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
+              {filterType === 'Monthly' && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Period (Month)</label>
+                  <select className="w-full border border-slate-300 rounded-lg py-2 px-3 text-xs bg-white focus:ring-2 focus:ring-emerald-700 focus:outline-hidden cursor-pointer" value={filterMonth} onChange={e => setFilterMonth(Number(e.target.value))}>
+                    {MONTH_NAMES_MR.slice(1).map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
+                  </select>
+                </div>
+              )}
+            </div>
+  
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Target Number</label>
+              <input 
+                type="number" 
+                className="w-full border border-slate-300 rounded-lg py-2 px-3 text-xs font-bold bg-white focus:ring-2 focus:ring-emerald-700 focus:outline-hidden cursor-text" 
+                value={targetValue} 
+                onChange={e => setTargetValue(e.target.value)}
+                placeholder="Enter target number"
+              />
+            </div>
+  
+            <button 
+              onClick={handleSaveTarget}
+              disabled={savingTarget}
+              className="w-full bg-emerald-800 hover:bg-emerald-900 text-white font-bold py-2.5 rounded-lg text-xs mt-2 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+            >
+              <Save className="w-4 h-4" />
+              <span>{savingTarget ? 'Saving...' : 'Save Target'}</span>
+            </button>
+          </div>
+        </div>
+  
+        <div className="bg-white p-4 rounded-xl shadow-xs border border-slate-200">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-bold text-slate-700">4. Target Progress</h2>
+            <span className="text-[10px] font-semibold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">
+              {periodLabel}
+            </span>
+          </div>
+          
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+            {activeProgressItems.map(item => (
+              <div key={item.id} className="border border-slate-200 rounded-lg p-3 bg-slate-50 flex flex-col gap-3">
+                <div className="font-bold text-slate-900 text-sm">
+                  {item.entityName}
+                </div>
+                <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                  <div className="bg-white border border-slate-200 py-1.5 px-1 rounded-md shadow-xs flex flex-col justify-center">
+                    <div className="text-slate-500 mb-0.5 font-medium text-[10px]">Target</div>
+                    <div className="font-bold text-slate-900">{item.targetValue}</div>
+                  </div>
+                  <div className="bg-white border border-slate-200 py-1.5 px-1 rounded-md shadow-xs flex flex-col justify-center">
+                    <div className="text-slate-500 mb-0.5 font-medium text-[10px]">Actual</div>
+                    <div className="font-bold text-emerald-700">{item.actualSamples}</div>
+                  </div>
+                  <div className="bg-white border border-slate-200 py-1.5 px-1 rounded-md shadow-xs flex flex-col justify-center">
+                    <div className="text-slate-500 mb-0.5 font-medium text-[10px]">Remain</div>
+                    <div className="font-bold text-amber-700">{item.remainingTarget}</div>
+                  </div>
+                  <div className="bg-white border border-slate-200 py-1.5 px-1 rounded-md shadow-xs flex flex-col justify-center">
+                    <div className="text-slate-500 mb-0.5 font-medium text-[10px]">Prog %</div>
+                    <div className="font-bold text-blue-700">{item.progressPercent}%</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {activeProgressItems.length === 0 && (
+              <div className="text-center text-xs text-slate-500 py-6 border border-dashed border-slate-200 rounded-lg">
+                No data available for selected criteria
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5 pb-12">
@@ -1660,42 +1849,34 @@ export const MalariaTargetsPage: React.FC<MalariaTargetsPageProps> = ({ onNaviga
                 <tr className="bg-slate-100 text-slate-700 border-b border-slate-200 text-[11px] font-bold">
                   <th className="py-2.5 px-3 w-10">अ.क्र.</th>
                   <th className="py-2.5 px-3">उपकेंद्र नाव</th>
+                  <th className="py-2.5 px-3">कोड</th>
                   <th className="py-2.5 px-3">PHC</th>
-                  <th className="py-2.5 px-3 text-center">गावे संख्या</th>
-                  <th className="py-2.5 px-3 text-right">लोकसंख्या</th>
-                  <th className="py-2.5 px-3 text-right">एकूण घरे</th>
+                  <th className="py-2.5 px-3 text-center">गावे</th>
                   <th className="py-2.5 px-3 text-right font-bold text-slate-900">लक्ष्य</th>
-                  <th className="py-2.5 px-3 text-right font-bold text-emerald-900">Actual Samples</th>
+                  <th className="py-2.5 px-3 text-right font-bold text-emerald-900">प्रत्यक्ष</th>
                   <th className="py-2.5 px-3 text-right">बाकी</th>
                   <th className="py-2.5 px-3 text-right font-bold">Progress %</th>
-                  <th className="py-2.5 px-3 text-center">Sent</th>
-                  <th className="py-2.5 px-3 text-center font-bold text-rose-800">Pending</th>
-                  <th className="py-2.5 px-3 text-center">Status</th>
+                  <th className="py-2.5 px-3 text-center">पाठविलेले</th>
+                  <th className="py-2.5 px-3 text-center font-bold text-rose-800">प्रलंबित</th>
+                  <th className="py-2.5 px-3 text-center">दर्जा</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
                 {displaySubcentres.length === 0 ? (
                   <tr>
-                    <td colSpan={13} className="text-center py-8 text-slate-500 text-xs">
-                      कोणतीही उपकेंद्रनिहाय माहिती उपलब्ध नाही.
+                    <td colSpan={12} className="text-center py-8 text-slate-500 text-xs">
+                      कोणतीही उपकेंद्र माहिती उपलब्ध नाही.
                     </td>
                   </tr>
                 ) : (
                   displaySubcentres.map((item, idx) => (
                     <tr key={item.id} className="hover:bg-slate-50 transition-colors">
                       <td className="py-2 px-3 font-mono text-slate-500">{idx + 1}</td>
-                      <td className="py-2 px-3 font-semibold text-slate-900">
-                        {item.entityName} {item.code ? `(${item.code})` : ''}
-                      </td>
+                      <td className="py-2 px-3 font-semibold text-slate-900">{item.entityName}</td>
+                      <td className="py-2 px-3 text-slate-600">{item.code || '-'}</td>
                       <td className="py-2 px-3 text-slate-600">{item.phc_name || '-'}</td>
                       <td className="py-2 px-3 text-center font-mono text-slate-700">
-                        {item.villageCount || 0}
-                      </td>
-                      <td className="py-2 px-3 text-right font-mono text-slate-700">
-                        {item.population?.toLocaleString('mr-IN') || 0}
-                      </td>
-                      <td className="py-2 px-3 text-right font-mono text-slate-700">
-                        {item.totalHouses || 0}
+                        {item.villageCount}
                       </td>
                       <td className="py-2 px-3 text-right font-bold text-slate-900 font-mono">
                         {item.targetValue}
@@ -1750,203 +1931,210 @@ export const MalariaTargetsPage: React.FC<MalariaTargetsPageProps> = ({ onNaviga
           </div>
         )}
 
-        {/* TAB 4: PHC-wise Target vs Actual (Requirement 12) */}
+        {/* TAB 4: PHC-wise Summary (Requirement 12) */}
         {activeTab === 'phcs' && isPhcController && (
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left text-xs">
               <thead>
                 <tr className="bg-slate-100 text-slate-700 border-b border-slate-200 text-[11px] font-bold">
                   <th className="py-2.5 px-3 w-10">अ.क्र.</th>
-                  <th className="py-2.5 px-3">प्राथमिक आरोग्य केंद्र (PHC)</th>
-                  <th className="py-2.5 px-3 text-center">उपकेंद्र संख्या</th>
+                  <th className="py-2.5 px-3">PHC नाव</th>
+                  <th className="py-2.5 px-3">कोड</th>
+                  <th className="py-2.5 px-3 text-center">उपकेंद्रे</th>
                   <th className="py-2.5 px-3 text-center">गावे</th>
-                  <th className="py-2.5 px-3 text-right">लोकसंख्या</th>
-                  <th className="py-2.5 px-3 text-right">एकूण घरे</th>
                   <th className="py-2.5 px-3 text-right font-bold text-slate-900">लक्ष्य</th>
-                  <th className="py-2.5 px-3 text-right font-bold text-emerald-900">Actual Samples</th>
+                  <th className="py-2.5 px-3 text-right font-bold text-emerald-900">प्रत्यक्ष</th>
                   <th className="py-2.5 px-3 text-right">बाकी</th>
                   <th className="py-2.5 px-3 text-right font-bold">Progress %</th>
-                  <th className="py-2.5 px-3 text-center">Sent</th>
-                  <th className="py-2.5 px-3 text-center font-bold text-rose-800">Pending</th>
-                  <th className="py-2.5 px-3 text-center">Status</th>
+                  <th className="py-2.5 px-3 text-center">पाठविलेले</th>
+                  <th className="py-2.5 px-3 text-center font-bold text-rose-800">प्रलंबित</th>
+                  <th className="py-2.5 px-3 text-center">दर्जा</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {displayPhcs.map((item, idx) => (
-                  <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="py-2 px-3 font-mono text-slate-500">{idx + 1}</td>
-                    <td className="py-2 px-3 font-semibold text-slate-900">
-                      {item.entityName} {item.code ? `(${item.code})` : ''}
-                    </td>
-                    <td className="py-2 px-3 text-center font-mono text-slate-700">
-                      {item.subcentreCount || 0}
-                    </td>
-                    <td className="py-2 px-3 text-center font-mono text-slate-700">
-                      {item.villageCount || 0}
-                    </td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-700">
-                      {item.population?.toLocaleString('mr-IN') || 0}
-                    </td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-700">
-                      {item.totalHouses || 0}
-                    </td>
-                    <td className="py-2 px-3 text-right font-bold text-slate-900 font-mono">
-                      {item.targetValue}
-                    </td>
-                    <td className="py-2 px-3 text-right font-bold text-emerald-900 font-mono">
-                      {item.actualSamples}
-                    </td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-700">
-                      {item.remainingTarget}
-                    </td>
-                    <td className="py-2 px-3 text-right font-mono font-bold">
-                      <span
-                        className={`inline-block px-1.5 py-0.5 rounded-sm ${
-                          item.targetValue === 0
-                            ? 'text-slate-400'
-                            : item.progressPercent >= 100
-                            ? 'bg-emerald-100 text-emerald-900'
-                            : item.progressPercent >= 50
-                            ? 'bg-amber-100 text-amber-900'
-                            : 'bg-rose-100 text-rose-900'
-                        }`}
-                      >
-                        {item.progressPercent}%
-                      </span>
-                    </td>
-                    <td className="py-2 px-3 text-center font-mono text-slate-700">
-                      {item.sentSamples}
-                    </td>
-                    <td className="py-2 px-3 text-center font-mono font-bold text-rose-700">
-                      {item.pendingSamples}
-                    </td>
-                    <td className="py-2 px-3 text-center">
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                          item.status === 'लक्ष्य पूर्ण'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : item.status === 'चांगली प्रगती'
-                            ? 'bg-sky-100 text-sky-800'
-                            : item.status === 'मध्यम प्रगती'
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-rose-100 text-rose-800'
-                        }`}
-                      >
-                        {item.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* TAB 5: Target Master Management List (Requirement 5) */}
-        {activeTab === 'target-list' && (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left text-xs">
-              <thead>
-                <tr className="bg-slate-100 text-slate-700 border-b border-slate-200 text-[11px] font-bold">
-                  <th className="py-2.5 px-3 w-10">अ.क्र.</th>
-                  <th className="py-2.5 px-3">वर्ष</th>
-                  <th className="py-2.5 px-3">महिना</th>
-                  <th className="py-2.5 px-3">स्तर (Scope)</th>
-                  <th className="py-2.5 px-3">PHC</th>
-                  <th className="py-2.5 px-3">उपकेंद्र</th>
-                  <th className="py-2.5 px-3">गाव</th>
-                  <th className="py-2.5 px-3">कर्मचारी</th>
-                  <th className="py-2.5 px-3 text-right font-bold text-slate-900">लक्ष्य</th>
-                  <th className="py-2.5 px-3">Remarks</th>
-                  {isPhcController && <th className="py-2.5 px-3 text-center">Action</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {targets.length === 0 ? (
+                {displayPhcs.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="text-center py-8 text-slate-500 text-xs">
-                      अद्याप कोणतेही लक्ष्य तयार केलेले नाही.
+                    <td colSpan={12} className="text-center py-8 text-slate-500 text-xs">
+                      कोणतीही PHC माहिती उपलब्ध नाही.
                     </td>
                   </tr>
                 ) : (
-                  targets.map((t, idx) => {
-                    const scopeLabel = t.employee_id
-                      ? 'कर्मचारी'
-                      : t.village_id
-                      ? 'गाव'
-                      : t.subcentre_id
-                      ? 'उपकेंद्र'
-                      : 'PHC';
-
-                    return (
-                      <tr key={t.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="py-2 px-3 font-mono text-slate-500">{idx + 1}</td>
-                        <td className="py-2 px-3 font-mono font-bold text-slate-800">{t.target_year}</td>
-                        <td className="py-2 px-3">
-                          {t.target_type === 'Monthly' && t.target_month
-                            ? MONTH_NAMES_MR[t.target_month]
-                            : 'वार्षिक'}
-                        </td>
-                        <td className="py-2 px-3">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-800">
-                            {scopeLabel}
-                          </span>
-                        </td>
-                        <td className="py-2 px-3 text-slate-700">{t.phc_name || '-'}</td>
-                        <td className="py-2 px-3 text-slate-700">{t.subcentre_name || '-'}</td>
-                        <td className="py-2 px-3 text-slate-700">{t.village_name || '-'}</td>
-                        <td className="py-2 px-3 text-slate-700">
-                          {t.employee_name ? (
-                            <span>
-                              {t.employee_name} ({t.malaria_smear_code || 'ANM/MPW'})
-                            </span>
-                          ) : (
-                            '-'
-                          )}
-                        </td>
-                        <td className="py-2 px-3 text-right font-mono font-bold text-emerald-900 text-sm">
-                          {t.target_value}
-                        </td>
-                        <td className="py-2 px-3 text-slate-500 text-[11px] max-w-xs truncate">
-                          {t.remarks || '-'}
-                        </td>
-                        {isPhcController && (
-                          <td className="py-2 px-3 text-center">
-                            <div className="flex items-center justify-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setTargetToEdit(t);
-                                  setIsModalOpen(true);
-                                }}
-                                className="p-1 rounded-md text-slate-600 hover:text-emerald-800 hover:bg-emerald-50 transition-colors cursor-pointer"
-                                title="संपादित करा"
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setDeleteTargetId(t.id)}
-                                className="p-1 rounded-md text-slate-400 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
-                                title="हटवा"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    );
-                  })
+                  displayPhcs.map((item, idx) => (
+                    <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="py-2 px-3 font-mono text-slate-500">{idx + 1}</td>
+                      <td className="py-2 px-3 font-semibold text-slate-900">{item.entityName}</td>
+                      <td className="py-2 px-3 text-slate-600">{item.code || '-'}</td>
+                      <td className="py-2 px-3 text-center font-mono text-slate-700">
+                        {item.subcentreCount}
+                      </td>
+                      <td className="py-2 px-3 text-center font-mono text-slate-700">
+                        {item.villageCount}
+                      </td>
+                      <td className="py-2 px-3 text-right font-bold text-slate-900 font-mono">
+                        {item.targetValue}
+                      </td>
+                      <td className="py-2 px-3 text-right font-bold text-emerald-900 font-mono">
+                        {item.actualSamples}
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono text-slate-700">
+                        {item.remainingTarget}
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono font-bold">
+                        <span
+                          className={`inline-block px-1.5 py-0.5 rounded-sm ${
+                            item.targetValue === 0
+                              ? 'text-slate-400'
+                              : item.progressPercent >= 100
+                              ? 'bg-emerald-100 text-emerald-900'
+                              : item.progressPercent >= 50
+                              ? 'bg-amber-100 text-amber-900'
+                              : 'bg-rose-100 text-rose-900'
+                          }`}
+                        >
+                          {item.progressPercent}%
+                        </span>
+                      </td>
+                      <td className="py-2 px-3 text-center font-mono text-slate-700">
+                        {item.sentSamples}
+                      </td>
+                      <td className="py-2 px-3 text-center font-mono font-bold text-rose-700">
+                        {item.pendingSamples}
+                      </td>
+                      <td className="py-2 px-3 text-center">
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                            item.status === 'लक्ष्य पूर्ण'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : item.status === 'चांगली प्रगती'
+                              ? 'bg-sky-100 text-sky-800'
+                              : item.status === 'मध्यम प्रगती'
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-rose-100 text-rose-800'
+                          }`}
+                        >
+                          {item.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
                 )}
               </tbody>
             </table>
           </div>
         )}
 
-        {/* TAB 6: Charts (Requirements 13 & 14) */}
+        {/* TAB 5: Target Master List (Requirement 5) */}
+        {activeTab === 'target-list' && (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-left text-xs">
+              <thead>
+                <tr className="bg-slate-100 text-slate-700 border-b border-slate-200 text-[11px] font-bold">
+                  <th className="py-2.5 px-3 w-10">अ.क्र.</th>
+                  <th className="py-2.5 px-3 w-28">प्रकार व कालावधी</th>
+                  <th className="py-2.5 px-3">लक्ष्य स्तर</th>
+                  <th className="py-2.5 px-3">संबंधित ठिकाण / व्यक्ती</th>
+                  <th className="py-2.5 px-3 text-right">लक्ष्य संख्या</th>
+                  <th className="py-2.5 px-3">शेरा</th>
+                  <th className="py-2.5 px-3 text-right">कृती</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {activeTargetsInPeriod.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-8 text-slate-500 text-xs">
+                      या कालावधीसाठी कोणतेही लक्ष्य सेट केलेले नाही.
+                    </td>
+                  </tr>
+                ) : (
+                  activeTargetsInPeriod.map((t, idx) => (
+                    <tr key={t.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="py-2 px-3 font-mono text-slate-500">{idx + 1}</td>
+                      <td className="py-2 px-3 font-medium">
+                        <span
+                          className={`px-1.5 py-0.5 rounded-sm text-[10px] font-bold ${
+                            t.target_type === 'Monthly'
+                              ? 'bg-sky-100 text-sky-800'
+                              : 'bg-indigo-100 text-indigo-800'
+                          }`}
+                        >
+                          {t.target_type === 'Monthly'
+                            ? `मासिक: ${t.target_month ? MONTH_NAMES_MR[t.target_month] : ''} ${
+                                t.target_year
+                              }`
+                            : `वार्षिक: ${t.target_year}`}
+                        </span>
+                      </td>
+                      <td className="py-2 px-3 font-medium text-slate-600">
+                        {t.employee_id
+                          ? 'कर्मचारी स्तर'
+                          : t.village_id
+                          ? 'गाव स्तर'
+                          : t.subcentre_id
+                          ? 'उपकेंद्र स्तर'
+                          : 'PHC स्तर'}
+                      </td>
+                      <td className="py-2 px-3">
+                        <div className="font-semibold text-slate-900">
+                          {t.employee_id
+                            ? t.employee_name
+                            : t.village_id
+                            ? t.village_name
+                            : t.subcentre_id
+                            ? t.subcentre_name
+                            : t.phc_name}
+                        </div>
+                        <div className="text-[10px] text-slate-500">
+                          {t.employee_id
+                            ? `${t.subcentre_name} | ${t.phc_name}`
+                            : t.village_id
+                            ? `${t.subcentre_name} | ${t.phc_name}`
+                            : t.subcentre_id
+                            ? `${t.phc_name}`
+                            : ''}
+                        </div>
+                      </td>
+                      <td className="py-2 px-3 text-right font-bold text-slate-900 font-mono">
+                        {t.target_value}
+                      </td>
+                      <td className="py-2 px-3 text-slate-600">
+                        <span className="truncate block max-w-xs">{t.remarks || '-'}</span>
+                      </td>
+                      <td className="py-2 px-3 text-right">
+                        {isPhcController && (
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTargetToEdit(t);
+                                setIsModalOpen(true);
+                              }}
+                              className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+                              title="संपादित करा"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteTargetId(t.id)}
+                              className="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded transition-colors"
+                              title="हटवा"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* TAB 6: Charts (Requirement 13) */}
         {activeTab === 'charts' && (
-          <div className="p-4 sm:p-5">
+          <div className="p-4 bg-slate-50">
             <MalariaTargetCharts
               monthlyTrends={monthlyTrendsData}
               employeeProgressList={employeeProgressItems}
@@ -2056,4 +2244,5 @@ export const MalariaTargetsPage: React.FC<MalariaTargetsPageProps> = ({ onNaviga
       />
     </div>
   );
+
 };

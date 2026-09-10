@@ -4,27 +4,23 @@ import { templateService } from '../services/templateService';
 import { useAuth } from '../hooks/useAuth';
 import { storage } from '../lib/storage';
 import { DynamicRecordForm } from '../components/DynamicRecordForm';
-import { 
+import {  
   ArrowLeft, Plus, Trash2, Edit3, GripVertical, CheckCircle2, 
   XCircle, Eye, Settings, ChevronUp, ChevronDown, Sparkles, 
   AlertCircle, HelpCircle, Layers, FileSpreadsheet, Lock
-} from 'lucide-react';
+, Save } from 'lucide-react';
 
-const FIELD_TYPE_LABELS: Record<FieldType, { label: string; desc: string; category: string }> = {
-  text: { label: 'साधा मजकूर (Text)', desc: 'नाव, पत्ता, किंवा एक ओळीचा मजकूर', category: 'मूलभूत' },
-  textarea: { label: 'तपशीलवार मजकूर (Textarea)', desc: 'तक्रार, शेरा, मोठे वर्णन', category: 'मूलभूत' },
-  number: { label: 'संख्या (Number)', desc: 'वय, वजन, बीपी, प्रयोगशाळा वाचन', category: 'मूलभूत' },
-  date: { label: 'तारीख (Date)', desc: 'कॅलेंडर तारीख निवडक', category: 'तारीख व वेळ' },
-  datetime: { label: 'तारीख व वेळ (DateTime)', desc: 'तारीख आणि अचूक वेळ', category: 'तारीख व वेळ' },
-  mobile: { label: 'मोबाईल नंबर (Mobile)', desc: '१० अंकी वैध मोबाईल क्रमांक', category: 'वैद्यकीय / संपर्क' },
-  dropdown: { label: 'ड्रॉपडाउन निवडा (Dropdown)', desc: 'यादीतून एकच पर्याय निवडण्यासाठी', category: 'पर्याय' },
-  radio: { label: 'रेडिओ बटन्स (Radio)', desc: 'बटनांमधून एक पर्याय निवडण्यासाठी', category: 'पर्याय' },
-  checkbox: { label: 'चेकबॉक्स (Checkbox)', desc: 'एकापेक्षा जास्त पर्याय निवडण्यासाठी', category: 'पर्याय' },
-  boolean: { label: 'होय / नाही (Boolean Switch)', desc: 'द्वि-स्थिती (Yes / No)', category: 'पर्याय' },
-  auto_number: { label: 'स्वयंचलित अनुक्रमांक (Auto Number)', desc: 'सिस्टीम तयार केलेला अनुक्रमांक', category: 'प्रगत' },
-  auto_date: { label: 'स्वयंचलित तारीख (Auto Date)', desc: 'नोंद करतानाची आजची तारीख', category: 'प्रगत' },
-  calculated: { label: 'गणना केलेले (Calculated)', desc: 'उदा. वय (DOB वरून) किंवा BMI', category: 'प्रगत' },
-  hidden: { label: 'अदृश्य फील्ड (Hidden)', desc: 'स्क्रीनवर न दाखवता अंतर्गत डेटा ठेवण्यासाठी', category: 'प्रगत' },
+const FIELD_TYPE_LABELS: Partial<Record<FieldType, { label: string; desc: string; category: string }>> = {
+  text: { label: 'Text', desc: 'साधा मजकूर', category: 'मूलभूत' },
+  textarea: { label: 'Textarea', desc: 'तपशीलवार मजकूर', category: 'मूलभूत' },
+  number: { label: 'Number', desc: 'संख्या', category: 'मूलभूत' },
+  date: { label: 'Date', desc: 'तारीख', category: 'तारीख व वेळ' },
+  mobile: { label: 'Mobile', desc: 'मोबाईल नंबर', category: 'वैद्यकीय / संपर्क' },
+  dropdown: { label: 'Dropdown', desc: 'ड्रॉपडाउन निवडा', category: 'पर्याय' },
+  radio: { label: 'Radio', desc: 'रेडिओ बटन्स', category: 'पर्याय' },
+  checkbox: { label: 'Checkbox', desc: 'चेकबॉक्स', category: 'पर्याय' },
+  result: { label: 'Result / Outcome', desc: 'निकाल / निष्कर्ष', category: 'पर्याय' },
+  auto_date: { label: 'Auto Date', desc: 'स्वयंचलित तारीख', category: 'प्रगत' },
 };
 
 const PRESET_OPTIONS: Record<string, { label: string; options: { value: string; label: string }[] }> = {
@@ -94,6 +90,7 @@ export default function TemplateFieldsPage({
   const [template, setTemplate] = useState<RecordRegisterTemplate | null>(null);
   const [fields, setFields] = useState<RecordTemplateField[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -228,7 +225,7 @@ export default function TemplateFieldsPage({
 
     // Process options
     let optionsJson: any = null;
-    if (['dropdown', 'radio', 'checkbox'].includes(editingField.field_type || '')) {
+    if (['dropdown', 'radio'].includes(editingField.field_type || '')) {
       const validOptions = customOptions.filter(o => o.value.trim() !== '');
       if (validOptions.length === 0) {
         setErrorMsg('कृपया किमान एक पर्याय जोडा.');
@@ -323,7 +320,7 @@ export default function TemplateFieldsPage({
   const updateOptionRow = (index: number, key: 'value' | 'label', text: string) => {
     const updated = [...customOptions];
     updated[index][key] = text;
-    if (key === 'label' && !updated[index].value) {
+    if (key === 'label') {
       updated[index].value = text;
     }
     setCustomOptions(updated);
@@ -386,7 +383,7 @@ export default function TemplateFieldsPage({
               onClick={openNewFieldModal}
               className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-indigo-700 flex items-center gap-2 shadow-xs transition-all cursor-pointer"
             >
-              <Plus className="w-4 h-4" /> नवीन Field जोडा
+              <Plus className="w-4 h-4" /> + नवीन Field जोडा
             </button>
           </div>
         </div>
@@ -414,7 +411,7 @@ export default function TemplateFieldsPage({
         <div className="p-4 bg-slate-50/75 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-              या नोंदवहीतील सक्रिय फील्ड्स ({fields.length})
+              Fields / फील्ड्स
             </span>
           </div>
           <span className="text-xs text-slate-500">
@@ -537,11 +534,10 @@ export default function TemplateFieldsPage({
             </div>
             
             <form onSubmit={handleSave} className="p-5 sm:p-6 space-y-5 overflow-y-auto flex-1">
-              {/* Field Label & Key */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                    Field Label (मराठी नाव) *
+                    Field Name *
                   </label>
                   <input
                     required
@@ -552,10 +548,9 @@ export default function TemplateFieldsPage({
                     placeholder="उदा. रुग्णाचे पूर्ण नाव"
                   />
                 </div>
-
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                    Field Key (Database Key) *
+                    Field Key *
                   </label>
                   <input
                     required
@@ -565,15 +560,10 @@ export default function TemplateFieldsPage({
                     className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-600 text-sm font-mono"
                     placeholder="उदा. patient_name"
                   />
-                  <p className="text-[10px] text-slate-400">फक्त लहान इंग्रजी अक्षरे आणि अंडरस्कोर</p>
                 </div>
-              </div>
-
-              {/* Field Type & Display Order */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                    Field Type (डेटा प्रकार) *
+                    Field Type *
                   </label>
                   <select
                     required
@@ -583,263 +573,79 @@ export default function TemplateFieldsPage({
                   >
                     {Object.entries(FIELD_TYPE_LABELS).map(([k, v]) => (
                       <option key={k} value={k}>
-                        {v.label} - {v.desc}
+                        {v.label}
                       </option>
                     ))}
                   </select>
                 </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                    Placeholder / मजकूर सूचना
-                  </label>
-                  <input
-                    type="text"
-                    value={editingField.placeholder || ''}
-                    onChange={e => setEditingField({...editingField, placeholder: e.target.value})}
-                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-600 text-sm"
-                    placeholder="उदा. नाव, आडनाव लिहा"
-                  />
-                </div>
-              </div>
-
-              {/* Options Builder for Dropdown, Radio, Checkbox */}
-              {['dropdown', 'radio', 'checkbox'].includes(editingField.field_type || '') && (
-                <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 space-y-3">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                    <div>
-                      <h4 className="text-xs font-bold text-indigo-950 uppercase tracking-wide">
-                        पर्याय व्यवस्थापन (Options Builder)
-                      </h4>
-                      <p className="text-[11px] text-indigo-700">या पर्यायांपैकी कर्मचारी निवड करू शकतील</p>
+                
+                {['dropdown', 'radio', 'result'].includes(editingField.field_type || '') && (
+                  <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 space-y-3">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                      <div>
+                        <h4 className="text-xs font-bold text-indigo-950 uppercase tracking-wide">
+                          Options / पर्याय
+                        </h4>
+                      </div>
+                      
                     </div>
-
-                    {/* Quick presets */}
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[10px] text-slate-500 font-semibold">रेडीमेड सेट्स:</span>
-                      {Object.entries(PRESET_OPTIONS).map(([pk, pv]) => (
-                        <button
-                          key={pk}
-                          type="button"
-                          onClick={() => applyPreset(pk)}
-                          className="px-2 py-0.5 rounded bg-white border border-indigo-200 text-[10px] font-bold text-indigo-800 hover:bg-indigo-100 transition-colors cursor-pointer"
-                        >
-                          {pv.label.split(' ')[0]}
-                        </button>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {customOptions.map((opt, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={opt.label}
+                            onChange={e => updateOptionRow(i, 'label', e.target.value)}
+                            placeholder={`Option ${i + 1}`}
+                            className="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white"
+                          />
+                          
+                          <button
+                            type="button"
+                            onClick={() => removeOptionRow(i)}
+                            className="p-1.5 text-rose-500 hover:bg-rose-100 rounded-lg"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       ))}
                     </div>
-                  </div>
-
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {customOptions.map((opt, i) => (
-                      <div key={i} className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={opt.label}
-                          onChange={e => updateOptionRow(i, 'label', e.target.value)}
-                          placeholder={`पर्याय ${i + 1} लेबल (उदा. पुरुष)`}
-                          className="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white"
-                        />
-                        <input
-                          type="text"
-                          value={opt.value}
-                          onChange={e => updateOptionRow(i, 'value', e.target.value)}
-                          placeholder="Value (DB Value)"
-                          className="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-mono bg-white"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeOptionRow(i)}
-                          className="p-1.5 text-rose-500 hover:bg-rose-100 rounded-lg"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={addOptionRow}
-                    className="text-xs font-bold text-indigo-700 hover:text-indigo-900 flex items-center gap-1 cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> आणखी पर्याय जोडा
-                  </button>
-                </div>
-              )}
-
-              {/* Conditional Visibility Logic */}
-              <div className="p-4 bg-amber-50/60 rounded-2xl border border-amber-200 space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={enableCondition}
-                      onChange={e => setEnableCondition(e.target.checked)}
-                      className="w-4 h-4 text-amber-600 rounded focus:ring-amber-600 border-slate-300"
-                    />
-                    <span className="text-xs font-bold text-amber-950 uppercase tracking-wide">
-                      या फील्डवर अट (Conditional Logic) लागू करा
-                    </span>
-                  </label>
-                  <span className="text-[11px] text-amber-800">
-                    उदा. 'गर्भवती?' होय असेल तरच EDD दाखवा
-                  </span>
-                </div>
-
-                {enableCondition && (
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-2">
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-600 block mb-1">अवलंबून असलेले फील्ड</label>
-                      <select
-                        value={condDependsOn}
-                        onChange={e => setCondDependsOn(e.target.value)}
-                        className="w-full p-2 border border-slate-300 rounded-lg text-xs bg-white"
-                      >
-                        <option value="">फील्ड निवडा...</option>
-                        {fields
-                          .filter(f => f.id !== editingField.id)
-                          .map(f => (
-                            <option key={f.field_key} value={f.field_key}>
-                              {f.field_label} ({f.field_key})
-                            </option>
-                          ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-600 block mb-1">ऑपरेटर</label>
-                      <select
-                        value={condOperator}
-                        onChange={e => setCondOperator(e.target.value)}
-                        className="w-full p-2 border border-slate-300 rounded-lg text-xs bg-white"
-                      >
-                        <option value="equals">समान असेल तर (equals)</option>
-                        <option value="not_equals">समान नसेल तर (not equals)</option>
-                        <option value="is_not_empty">रिकामे नसेल तर (has value)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-600 block mb-1">तपासणी मूल्य (Value)</label>
-                      <input
-                        type="text"
-                        value={condValue}
-                        onChange={e => setCondValue(e.target.value)}
-                        placeholder="उदा. होय किंवा Positive"
-                        className="w-full p-2 border border-slate-300 rounded-lg text-xs bg-white"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-600 block mb-1">कृती (Action)</label>
-                      <select
-                        value={condAction}
-                        onChange={e => setCondAction(e.target.value)}
-                        className="w-full p-2 border border-slate-300 rounded-lg text-xs bg-white"
-                      >
-                        <option value="show">दाखवा (Show)</option>
-                        <option value="hide">लपवा (Hide)</option>
-                      </select>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={addOptionRow}
+                      className="text-xs font-bold text-indigo-700 hover:text-indigo-900 flex items-center gap-1 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> + पर्याय जोडा
+                    </button>
                   </div>
                 )}
-              </div>
-
-              {/* Automation Rules */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                  ऑटोमेशन नियम (Automation Rule)
-                </label>
-                <select
-                  value={editingField.automation_json?.action || ''}
-                  onChange={e => {
-                    const action = e.target.value;
-                    if (action) {
-                      setEditingField({
-                        ...editingField,
-                        automation_json: { trigger: 'ON_CREATE', action }
-                      });
-                    } else {
-                      setEditingField({ ...editingField, automation_json: null });
-                    }
-                  }}
-                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-600 text-sm bg-white"
-                >
-                  <option value="">कोणतेही नाही (सामान्य इनपुट)</option>
-                  <option value="AUTO_DATE">AUTO_DATE - आजची तारीख आपोआप भरा</option>
-                  <option value="AUTO_NUMBER">AUTO_NUMBER - सिस्टीम अनुक्रमांक व्युत्पन्न करा</option>
-                  <option value="LOCK_AFTER_PRINT">LOCK_AFTER_PRINT - प्रिंट झाल्यानंतर लॉक करा</option>
-                </select>
-              </div>
-
-              {/* Display & Validation Flags */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                <label className="flex items-center gap-2 cursor-pointer">
+                
+                <label className="flex items-center gap-2 cursor-pointer mt-2">
                   <input
                     type="checkbox"
                     checked={editingField.is_required ?? false}
                     onChange={e => setEditingField({...editingField, is_required: e.target.checked})}
                     className="w-4 h-4 text-indigo-600 rounded"
                   />
-                  <span className="text-xs font-bold text-slate-800">Required *</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={editingField.is_searchable ?? false}
-                    onChange={e => setEditingField({...editingField, is_searchable: e.target.checked})}
-                    className="w-4 h-4 text-indigo-600 rounded"
-                  />
-                  <span className="text-xs font-bold text-slate-800">Searchable</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={editingField.show_in_list ?? true}
-                    onChange={e => setEditingField({...editingField, show_in_list: e.target.checked})}
-                    className="w-4 h-4 text-indigo-600 rounded"
-                  />
-                  <span className="text-xs font-bold text-slate-800">यादीत दाखवा</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={editingField.show_in_report ?? true}
-                    onChange={e => setEditingField({...editingField, show_in_report: e.target.checked})}
-                    className="w-4 h-4 text-indigo-600 rounded"
-                  />
-                  <span className="text-xs font-bold text-slate-800">अहवालात दाखवा</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={editingField.show_in_print ?? true}
-                    onChange={e => setEditingField({...editingField, show_in_print: e.target.checked})}
-                    className="w-4 h-4 text-indigo-600 rounded"
-                  />
-                  <span className="text-xs font-bold text-slate-800">प्रिंटमध्ये दाखवा</span>
+                  <span className="text-xs font-bold text-slate-800">Required</span>
                 </label>
               </div>
 
-              {/* Submit Buttons */}
-              <div className="pt-4 flex gap-3 border-t border-slate-200">
+              <div className="flex justify-end gap-3 pt-5 border-t border-slate-200">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="flex-1 px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors"
+                  className="px-4 py-2.5 rounded-xl text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
                 >
-                  रद्द करा
+                  Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-xs"
+                  disabled={saving}
+                  className="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-xs flex items-center gap-2 cursor-pointer"
                 >
-                  {editingField.id ? 'बदल जतन करा' : 'Field जतन करा'}
+                  <Save className="w-4 h-4" />
+                  {saving ? 'सेव्ह करत आहे...' : 'Save Field'}
                 </button>
               </div>
             </form>

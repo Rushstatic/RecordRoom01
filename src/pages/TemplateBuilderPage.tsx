@@ -545,9 +545,16 @@ export default function TemplateBuilderPage({
                             <span>{t.register_name}</span>
                           </div>
                           <div className="flex items-center gap-2 mt-1">
+                            
                             <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-bold border border-slate-200">
                               {t.register_code}
                             </span>
+                            {t.register_type && (
+                              <span className="text-[11px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-bold border border-blue-200">
+                                {t.register_type}
+                              </span>
+                            )}
+
                             {t.description && (
                               <span className="text-xs text-slate-500 truncate max-w-xs">{t.description}</span>
                             )}
@@ -742,6 +749,25 @@ export default function TemplateBuilderPage({
                     placeholder="उदा. राष्ट्रीय आरोग्य अभियान (NHM)"
                   />
                 </div>
+              </div>
+
+              
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                  नोंदवही प्रकार (Register Type)
+                </label>
+                <select
+                  value={editingTemplate.register_type || ''}
+                  onChange={e => setEditingTemplate({...editingTemplate, register_type: e.target.value})}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 text-sm font-medium bg-white"
+                >
+                  <option value="">निवडा (Select)</option>
+                  <option value="रक्त नमुना नोंदवही">रक्त नमुना नोंदवही</option>
+                  <option value="थुंकी नमुना नोंदवही">थुंकी नमुना नोंदवही</option>
+                  <option value="इतर नमुना नोंदवही">इतर नमुना नोंदवही</option>
+                  <option value="प्रसूती नोंदवही">प्रसूती नोंदवही</option>
+                  <option value="इतर नोंदवही">इतर नोंदवही</option>
+                </select>
               </div>
 
               {/* Icon Picker */}

@@ -249,47 +249,29 @@ export const SubcentreMasterPage: React.FC = () => {
           {filteredSubcentres.map((sc) => (
             <div
               key={sc.id}
-              className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs hover:border-emerald-400 transition-colors flex flex-col justify-between"
+              className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs hover:border-emerald-400 transition-colors flex flex-col justify-between"
             >
-              <div>
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div>
-                    <span className="text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded border border-emerald-200">
-                      {sc.subcentre_code || 'कोड प्रलंबित'}
-                    </span>
-                    <h3 className="text-base font-bold text-slate-900 mt-1">
-                      {sc.subcentre_name}
-                    </h3>
-                  </div>
-                  <span className="text-xs font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-sm font-bold text-slate-900">
+                    {sc.subcentre_name}
+                  </h3>
+                  <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                     सक्रिय
                   </span>
                 </div>
-
-                <div className="mt-3 pt-3 border-t border-slate-100 space-y-2 text-xs text-slate-600">
-                  <div className="p-2 bg-slate-50 rounded-lg border border-slate-100">
-                    <span className="text-slate-400 block text-[11px]">संलग्न प्राथमिक आरोग्य केंद्र (phc_id):</span>
-                    <span className="font-semibold text-slate-800 flex items-center gap-1.5 mt-0.5">
-                      <Building2 className="w-3.5 h-3.5 text-emerald-700" />
-                      {sc.phc_name}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-slate-400 text-[11px]">UUID:</span>
-                    <span className="font-mono text-[10px] text-slate-500 truncate max-w-[140px]">
-                      {sc.id}
-                    </span>
-                  </div>
+                <div className="text-xs text-slate-500 flex items-center gap-1.5 mt-2">
+                  <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                  <span>{sc.phc_name}</span>
                 </div>
               </div>
 
               {isPhcController ? (
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                <div className="pt-3 border-t border-slate-100 flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => handleOpenEdit(sc)}
-                    className="text-emerald-700 hover:text-emerald-900 font-semibold flex items-center gap-1"
+                    className="flex-1 text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold px-3 py-1.5 rounded-lg border border-slate-200 flex items-center justify-center gap-1.5 transition-colors"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                     <span>संपादित करा</span>
@@ -297,16 +279,15 @@ export const SubcentreMasterPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => handleDelete(sc.id, sc.subcentre_name)}
-                    className="text-rose-600 hover:text-rose-800 font-semibold flex items-center gap-1"
+                    className="flex-1 text-xs bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold px-3 py-1.5 rounded-lg border border-rose-200 flex items-center justify-center gap-1.5 transition-colors"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>हटवा</span>
                   </button>
                 </div>
               ) : (
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-                  <span>वाचन परवानगी</span>
-                  <span className="font-mono text-[10px]">Active</span>
+                <div className="pt-3 border-t border-slate-100 text-center text-[11px] text-slate-400 italic">
+                  केवळ वाचन (Read Only)
                 </div>
               )}
             </div>
@@ -317,10 +298,10 @@ export const SubcentreMasterPage: React.FC = () => {
       {/* Add/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-              <h3 className="text-base font-bold text-slate-900">
-                {editingSc ? 'उपकेंद्र संपादित करा' : 'नवीन आरोग्य उपकेंद्र नोंदणी'}
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
+              <h3 className="text-sm font-bold text-slate-900">
+                {editingSc ? 'उपकेंद्र संपादित करा' : 'नवीन उपकेंद्र जोडा'}
               </h3>
               <button
                 type="button"
@@ -331,7 +312,7 @@ export const SubcentreMasterPage: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="py-4 space-y-3.5 text-xs">
+            <form onSubmit={handleSave} className="space-y-4 text-xs">
               {errorMsg && (
                 <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -341,7 +322,7 @@ export const SubcentreMasterPage: React.FC = () => {
 
               <div>
                 <label className="block font-bold text-slate-700 mb-1">
-                  संलग्न प्राथमिक आरोग्य केंद्र (phc_id) *
+                  प्राथमिक आरोग्य केंद्र (PHC) *
                 </label>
                 <select
                   required
@@ -354,7 +335,7 @@ export const SubcentreMasterPage: React.FC = () => {
                   )}
                   {phcs.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.phc_name} ({p.taluka})
+                      {p.phc_name}
                     </option>
                   ))}
                 </select>
@@ -362,7 +343,7 @@ export const SubcentreMasterPage: React.FC = () => {
 
               <div>
                 <label className="block font-bold text-slate-700 mb-1">
-                  उपकेंद्राचे नाव (subcentre_name) *
+                  उपकेंद्राचे नाव *
                 </label>
                 <input
                   type="text"
@@ -374,20 +355,7 @@ export const SubcentreMasterPage: React.FC = () => {
                 />
               </div>
 
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">
-                  उपकेंद्र कोड (subcentre_code)
-                </label>
-                <input
-                  type="text"
-                  value={subcentreCode}
-                  onChange={(e) => setSubcentreCode(e.target.value)}
-                  placeholder="उदा. SC-JTG-01"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-                />
-              </div>
-
-              <div className="pt-3 border-t border-slate-200 flex justify-end gap-2">
+              <div className="pt-4 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
@@ -400,7 +368,7 @@ export const SubcentreMasterPage: React.FC = () => {
                   className="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-1.5 shadow-xs"
                 >
                   <Save className="w-4 h-4" />
-                  <span>{editingSc ? 'बदल जतन करा' : 'उपकेंद्र नोंदवा'}</span>
+                  <span>{editingSc ? 'जतन करा' : 'जोडा'}</span>
                 </button>
               </div>
             </form>

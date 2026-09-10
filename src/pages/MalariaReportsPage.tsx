@@ -32,6 +32,7 @@ import {
   PageId,
 } from '../types';
 import { useAuth } from '../hooks/useAuth';
+import { exportElementToPDF } from '../utils/pdfExport';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { offlineDraftService } from '../services/offlineDraftService';
 import { masterDataService } from '../services/masterDataService';
@@ -802,6 +803,13 @@ export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNaviga
           >
             <Download className="w-4 h-4" />
             <span>Excel डाउनलोड</span>
+          </button>
+          <button
+            onClick={() => exportElementToPDF('malaria-report-container', 'malaria-report.pdf', 'l')}
+            className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold py-2.5 px-3.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <FileText className="w-4 h-4" />
+            <span>PDF डाउनलोड</span>
           </button>
 
           <button

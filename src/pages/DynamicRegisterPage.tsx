@@ -19,7 +19,7 @@ export default function DynamicRegisterPage({
   onNavigate: (page: PageId) => void;
   templateId?: string;
 }) {
-  const { user, role } = useAuth();
+  const { user, userContext, role } = useAuth();
   const isPhcController = role === 'phc_controller' || user?.role === 'phc_controller';
 
   const [availableTemplates, setAvailableTemplates] = useState<RecordRegisterTemplate[]>([]);
@@ -153,9 +153,9 @@ export default function DynamicRegisterPage({
       const newRecord: DynamicRecordEntry = {
         id: recordId,
         template_id: selectedTemplateId,
-        employee_id: user?.employeeId,
-        phc_id: user?.phcId,
-        subcentre_id: subcentreId || user?.subcentreId,
+        employee_id: userContext?.employeeId || user?.employeeId,
+        phc_id: userContext?.phcId || user?.phcId,
+        subcentre_id: subcentreId || userContext?.subcentreId || user?.subcentreId,
         village_id: villageId || null,
         record_data: dataToSave,
         record_date: recordDate || new Date().toISOString().split('T')[0],
@@ -171,7 +171,7 @@ export default function DynamicRegisterPage({
         record_description: `Dynamic Record: ${template?.register_name} (ID: ${recordId})`,
       });
 
-      setSuccess('नोंद यशस्वीरित्या जतन झाली!');
+      setSuccess('नोंद यशस्वीरीत्या जतन झाली.');
       setTimeout(() => {
         setShowForm(false);
         setEditingRecord(null);

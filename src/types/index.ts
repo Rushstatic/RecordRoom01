@@ -576,6 +576,7 @@ export interface RecordRegisterTemplate {
   program_name: string | null;
   description: string | null;
   icon: string | null;
+  register_type?: string;
   is_active: boolean;
   display_order: number;
   created_by?: string;
@@ -585,7 +586,7 @@ export interface RecordRegisterTemplate {
 
 export type FieldType = 
   | 'text' | 'textarea' | 'number' | 'date' | 'datetime' 
-  | 'mobile' | 'dropdown' | 'radio' | 'checkbox' 
+  | 'mobile' | 'dropdown' | 'radio' | 'checkbox' | 'result' 
   | 'boolean' | 'auto_number' | 'auto_date' 
   | 'calculated' | 'hidden';
 

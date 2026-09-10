@@ -29,13 +29,13 @@ export function DynamicRecordForm({
   success,
   readOnly = false,
 }: Props) {
-  const { user } = useAuth();
+  const { user, userContext, isPhcController } = useAuth();
 
   const [formData, setFormData] = useState<any>(initialData || {});
   const [subcentres, setSubcentres] = useState<Subcentre[]>([]);
   const [villages, setVillages] = useState<Village[]>([]);
   const [selectedSubcentreId, setSelectedSubcentreId] = useState<string>(
-    initialSubcentreId || user?.subcentre_id || ''
+    initialSubcentreId || userContext?.subcentreId || ''
   );
   const [selectedVillageId, setSelectedVillageId] = useState<string>(initialVillageId || '');
   const [recordDate, setRecordDate] = useState<string>(
@@ -52,10 +52,31 @@ export function DynamicRecordForm({
         masterDataService.getSubcentres(),
         masterDataService.getVillages(),
       ]);
-      setSubcentres(sc);
-      setVillages(v);
-      if (!selectedSubcentreId && sc.length > 0) {
-        setSelectedSubcentreId(sc[0].id);
+
+      let allowedSc = sc;
+      let allowedV = v;
+
+      if (!isPhcController && userContext) {
+        const allowedSubcentreIds = userContext.applicableSubcentreIds || [];
+        allowedSc = sc.filter(s => allowedSubcentreIds.includes(s.id));
+        
+        const allowedVillageIds = userContext.applicableVillageIds || [];
+        allowedV = v.filter(vil => allowedVillageIds.includes(vil.id));
+      } else if (isPhcController && userContext?.phcId) {
+        allowedSc = sc.filter(s => s.phc_id === userContext.phcId);
+      }
+
+      setSubcentres(allowedSc);
+      setVillages(allowedV);
+
+      if (!selectedSubcentreId) {
+        if (initialSubcentreId && allowedSc.some(s => s.id === initialSubcentreId)) {
+          setSelectedSubcentreId(initialSubcentreId);
+        } else if (userContext?.subcentreId && allowedSc.some(s => s.id === userContext.subcentreId)) {
+          setSelectedSubcentreId(userContext.subcentreId);
+        } else if (allowedSc.length > 0) {
+          setSelectedSubcentreId(allowedSc[0].id);
+        }
       }
     } catch (err) {
       console.error('Master data load error in DynamicRecordForm:', err);
@@ -265,7 +286,7 @@ export function DynamicRecordForm({
                     className="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-600 text-xs font-medium"
                     placeholder={f.placeholder || 'तपशील लिहा...'}
                   />
-                ) : f.field_type === 'dropdown' ? (
+                ) : ['dropdown', 'result'].includes(f.field_type) ? (
                   <select
                     disabled={readOnly}
                     required={f.is_required && !isAuto}
@@ -293,7 +314,7 @@ export function DynamicRecordForm({
                         >
                           <input
                             disabled={readOnly}
-                            type="radio"
+                            type="radio" required={f.is_required && !isAuto}
                             name={f.field_key}
                             value={opt.value}
                             checked={isSelected}
@@ -306,30 +327,17 @@ export function DynamicRecordForm({
                     })}
                   </div>
                 ) : f.field_type === 'checkbox' ? (
-                  <div className="flex flex-wrap gap-2.5 pt-1">
-                    {options.map((opt, idx) => {
-                      const currentArr = Array.isArray(formData[f.field_key]) ? formData[f.field_key] : [];
-                      const isChecked = currentArr.includes(opt.value);
-                      return (
-                        <label 
-                          key={idx} 
-                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium cursor-pointer transition-all ${
-                            isChecked 
-                              ? 'bg-indigo-50 border-indigo-600 text-indigo-900 font-bold' 
-                              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                          }`}
-                        >
-                          <input
-                            disabled={readOnly}
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => handleCheckboxMultiToggle(f.field_key, opt.value)}
-                            className="text-indigo-600 rounded focus:ring-indigo-600"
-                          />
-                          <span>{opt.label}</span>
-                        </label>
-                      );
-                    })}
+                  <div className="pt-1">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        disabled={readOnly}
+                        type="checkbox" required={f.is_required && !isAuto}
+                        checked={!!formData[f.field_key]}
+                        onChange={e => setFormData({...formData, [f.field_key]: e.target.checked})}
+                        className="text-indigo-600 rounded focus:ring-indigo-600 w-4 h-4"
+                      />
+                      <span className="text-sm font-medium text-slate-700">{f.field_label}</span>
+                    </label>
                   </div>
                 ) : f.field_type === 'boolean' ? (
                   <div className="flex gap-2 pt-1">

@@ -223,64 +223,31 @@ export const PHCMasterPage: React.FC = () => {
           {filteredPhcs.map((phc) => (
             <div
               key={phc.id}
-              className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs hover:border-emerald-400 transition-colors flex flex-col justify-between"
+              className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs hover:border-emerald-400 transition-colors flex flex-col justify-between"
             >
-              <div>
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div>
-                    <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
-                      {phc.phc_code || 'कोड प्रलंबित'}
-                    </span>
-                    <h3 className="text-base font-bold text-slate-900 mt-1">
-                      {phc.phc_name}
-                    </h3>
-                  </div>
-                  <span className="text-xs font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                    सक्रिय
-                  </span>
-                </div>
-
-                <div className="mt-3 pt-3 border-t border-slate-100 space-y-1.5 text-xs text-slate-600">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400">तालुका:</span>
-                    <span className="font-semibold text-slate-800">{phc.taluka || '-'}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400">जिल्हा:</span>
-                    <span className="font-semibold text-slate-800">{phc.district || '-'}</span>
-                  </div>
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-slate-400 text-[11px]">सिस्टीम UUID:</span>
-                    <span className="font-mono text-[10px] text-slate-500 truncate max-w-[130px]">
-                      {phc.id}
-                    </span>
-                  </div>
-                </div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-bold text-slate-900">
+                  {phc.phc_name}
+                </h3>
+                <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  सक्रिय
+                </span>
               </div>
 
               {isPhcController ? (
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                <div className="pt-3 border-t border-slate-100 flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => handleOpenEdit(phc)}
-                    className="text-emerald-700 hover:text-emerald-900 font-semibold flex items-center gap-1"
+                    className="flex-1 text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold px-3 py-1.5 rounded-lg border border-slate-200 flex items-center justify-center gap-1.5 transition-colors"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                     <span>संपादित करा</span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(phc.id, phc.phc_name)}
-                    className="text-rose-600 hover:text-rose-800 font-semibold flex items-center gap-1"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>हटवा</span>
-                  </button>
                 </div>
               ) : (
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-                  <span>वाचन परवानगी</span>
-                  <span className="font-mono text-[10px]">Active</span>
+                <div className="pt-3 border-t border-slate-100 text-center text-[11px] text-slate-400 italic">
+                  केवळ वाचन (Read Only)
                 </div>
               )}
             </div>
@@ -291,10 +258,10 @@ export const PHCMasterPage: React.FC = () => {
       {/* Add/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-              <h3 className="text-base font-bold text-slate-900">
-                {editingPhc ? 'PHC संपादित करा' : 'नवीन प्राथमिक आरोग्य केंद्र नोंदणी'}
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
+              <h3 className="text-sm font-bold text-slate-900">
+                {editingPhc ? 'PHC संपादित करा' : 'नवीन PHC जोडा'}
               </h3>
               <button
                 type="button"
@@ -305,7 +272,7 @@ export const PHCMasterPage: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="py-4 space-y-3.5 text-xs">
+            <form onSubmit={handleSave} className="space-y-4 text-xs">
               {errorMsg && (
                 <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -315,7 +282,7 @@ export const PHCMasterPage: React.FC = () => {
 
               <div>
                 <label className="block font-bold text-slate-700 mb-1">
-                  PHC चे नाव (phc_name) *
+                  PHC चे नाव *
                 </label>
                 <input
                   type="text"
@@ -327,48 +294,7 @@ export const PHCMasterPage: React.FC = () => {
                 />
               </div>
 
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">
-                  PHC कोड (phc_code)
-                </label>
-                <input
-                  type="text"
-                  value={phcCode}
-                  onChange={(e) => setPhcCode(e.target.value)}
-                  placeholder="उदा. PHC-PUN-014"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">
-                    तालुका (taluka)
-                  </label>
-                  <input
-                    type="text"
-                    value={taluka}
-                    onChange={(e) => setTaluka(e.target.value)}
-                    placeholder="उदा. शिरूर"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">
-                    जिल्हा (district)
-                  </label>
-                  <input
-                    type="text"
-                    value={district}
-                    onChange={(e) => setDistrict(e.target.value)}
-                    placeholder="उदा. पुणे"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-3 border-t border-slate-200 flex justify-end gap-2">
+              <div className="pt-4 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
@@ -381,7 +307,7 @@ export const PHCMasterPage: React.FC = () => {
                   className="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-1.5 shadow-xs"
                 >
                   <Save className="w-4 h-4" />
-                  <span>{editingPhc ? 'बदल जतन करा' : 'PHC नोंदवा'}</span>
+                  <span>{editingPhc ? 'जतन करा' : 'जोडा'}</span>
                 </button>
               </div>
             </form>

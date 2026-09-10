@@ -85,6 +85,7 @@ class TemplateService {
         program_name: cleanTemplate.program_name || null,
         description: cleanTemplate.description || null,
         icon: cleanTemplate.icon || 'FileText',
+        register_type: cleanTemplate.register_type || null,
         is_active: cleanTemplate.is_active ?? true,
         display_order: cleanTemplate.display_order ?? 0,
         created_by: isValidUUID(cleanTemplate.created_by) ? cleanTemplate.created_by : null,
@@ -324,9 +325,7 @@ class TemplateService {
       const { error } = await supabase.from('dynamic_record_entries').upsert(dbPayload);
       if (error) {
         console.error('Supabase save record error:', error);
-        if (!isDemoMode()) {
-          throw new Error(`डायनॅमिक नोंद जतन करता आली नाही: ${error.message}`);
-        }
+        throw new Error(`डायनॅमिक नोंद जतन करता आली नाही: ${error.message}`);
       }
     } else if (!isDemoMode()) {
       throw new Error('Supabase कॉन्फिगर केलेले नाही.');

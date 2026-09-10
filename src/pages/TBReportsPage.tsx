@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { PageId, TBPatientRecord } from '../types';
 import { tbService, formatIndianDate } from '../services/tbService';
 import { masterDataService } from '../services/masterDataService';
-import { Download, Printer, Search, Filter, Activity, FileSpreadsheet } from 'lucide-react';
+import { Download, Printer, Search, Filter, Activity, FileSpreadsheet, FileText } from 'lucide-react';
+import { exportElementToPDF } from '../utils/pdfExport';
 import { useAuth } from '../hooks/useAuth';
 
 interface TBReportsPageProps {
@@ -203,6 +204,9 @@ export const TBReportsPage: React.FC<TBReportsPageProps> = ({ onNavigate }) => {
         <div className="flex gap-2">
           <button onClick={exportCSV} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-sm flex items-center gap-2 cursor-pointer transition-colors">
             <Download className="w-4 h-4" /> CSV Export
+          </button>
+          <button onClick={() => exportElementToPDF('tb-report-container', 'tb-report.pdf', 'l')} className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 font-semibold rounded-lg text-sm flex items-center gap-2 cursor-pointer transition-colors">
+            <FileText className="w-4 h-4" /> PDF Export
           </button>
           <button onClick={printReport} className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-lg text-sm flex items-center gap-2 cursor-pointer transition-colors">
             <Printer className="w-4 h-4" /> Print (A4)

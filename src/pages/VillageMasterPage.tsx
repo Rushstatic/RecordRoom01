@@ -235,17 +235,8 @@ export const VillageMasterPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Village Master Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="p-3.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-          <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-            गाव / वस्ती नोंदवही (Village Master Database)
-          </span>
-          <span className="text-[11px] text-slate-500">
-            मलेरिया सर्व्हेक्षण व ताप रुग्ण तपासणीसाठी आवश्यक
-          </span>
-        </div>
-
+      {/* Village Master Cards */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden p-4">
         {loading ? (
           <div className="p-8 text-center text-xs text-slate-500">
             डेटा लोड होत आहे...
@@ -255,70 +246,61 @@ export const VillageMasterPage: React.FC = () => {
             कोणतेही गाव सापडले नाही. "नवीन गाव जोडा" वर क्लिक करा.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-700">
-              <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 uppercase text-[11px]">
-                <tr>
-                  <th className="px-4 py-3">गाव / वस्तीचे नाव (village_name)</th>
-                  <th className="px-4 py-3">संलग्न उपकेंद्र (subcentre_id)</th>
-                  <th className="px-4 py-3">लोकसंख्या (population)</th>
-                  <th className="px-4 py-3">एकूण कुटुंबे (total_houses)</th>
-                  <th className="px-4 py-3">नोंदणी तारीख</th>
-                  <th className="px-4 py-3 text-right">कृती (Actions)</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {filteredVillages.map((v) => (
-                  <tr key={v.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-4 py-3 font-bold text-slate-900">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredVillages.map((v) => (
+              <div
+                key={v.id}
+                className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:border-emerald-400 transition-colors flex flex-col justify-between"
+              >
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="text-sm font-bold text-slate-900">
                       {v.village_name}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="font-semibold text-slate-800 flex items-center gap-1">
-                        <Home className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                        <span>{v.subcentre_name}</span>
-                      </div>
-                      {v.phc_name && (
-                        <div className="text-[10px] text-slate-400 pl-4.5">{v.phc_name}</div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 font-semibold text-slate-800">
-                      {v.population.toLocaleString('mr-IN')} नागरिक
-                    </td>
-                    <td className="px-4 py-3 text-slate-700">
-                      {v.total_houses.toLocaleString('mr-IN')} घरे
-                    </td>
-                    <td className="px-4 py-3 text-slate-500 text-[11px]">
-                      {v.created_at ? new Date(v.created_at).toLocaleDateString('mr-IN') : '-'}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {isPhcController ? (
-                        <div className="inline-flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEdit(v)}
-                            className="p-1 rounded text-emerald-700 hover:bg-emerald-50"
-                            title="संपादित करा"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(v.id, v.village_name)}
-                            className="p-1 rounded text-rose-600 hover:bg-rose-50"
-                            title="हटवा"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-[11px] text-slate-400 italic">केवळ वाचन</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </h3>
+                  </div>
+                  <div className="text-xs text-slate-500 flex items-center gap-1.5 mt-2">
+                    <Home className="w-3.5 h-3.5 text-slate-400" />
+                    <span>{v.subcentre_name}</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 mt-4 text-xs">
+                    <div className="bg-slate-50 p-2 rounded border border-slate-100 flex flex-col">
+                      <span className="text-slate-400 mb-0.5 text-[10px]">लोकसंख्या</span>
+                      <span className="font-semibold text-slate-700">{v.population.toLocaleString('mr-IN')}</span>
+                    </div>
+                    <div className="bg-slate-50 p-2 rounded border border-slate-100 flex flex-col">
+                      <span className="text-slate-400 mb-0.5 text-[10px]">एकूण कुटुंबे</span>
+                      <span className="font-semibold text-slate-700">{v.total_houses.toLocaleString('mr-IN')}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {isPhcController ? (
+                  <div className="pt-3 border-t border-slate-100 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEdit(v)}
+                      className="flex-1 text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold px-3 py-1.5 rounded-lg border border-slate-200 flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                      <span>संपादित करा</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(v.id, v.village_name)}
+                      className="flex-1 text-xs bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold px-3 py-1.5 rounded-lg border border-rose-200 flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>हटवा</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="pt-3 border-t border-slate-100 text-center text-[11px] text-slate-400 italic">
+                    केवळ वाचन (Read Only)
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -326,10 +308,10 @@ export const VillageMasterPage: React.FC = () => {
       {/* Add/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-              <h3 className="text-base font-bold text-slate-900">
-                {editingVillage ? 'गाव माहिती संपादित करा' : 'नवीन गाव / वस्ती नोंदणी'}
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
+              <h3 className="text-sm font-bold text-slate-900">
+                {editingVillage ? 'गाव माहिती संपादित करा' : 'नवीन गाव जोडा'}
               </h3>
               <button
                 type="button"
@@ -340,7 +322,7 @@ export const VillageMasterPage: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="py-4 space-y-3.5 text-xs">
+            <form onSubmit={handleSave} className="space-y-4 text-xs">
               {errorMsg && (
                 <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -350,7 +332,7 @@ export const VillageMasterPage: React.FC = () => {
 
               <div>
                 <label className="block font-bold text-slate-700 mb-1">
-                  संलग्न आरोग्य उपकेंद्र (subcentre_id) *
+                  संलग्न आरोग्य उपकेंद्र *
                 </label>
                 <select
                   required
@@ -363,7 +345,7 @@ export const VillageMasterPage: React.FC = () => {
                   )}
                   {subcentres.map((sc) => (
                     <option key={sc.id} value={sc.id}>
-                      {sc.subcentre_name} ({sc.phc_name})
+                      {sc.subcentre_name}
                     </option>
                   ))}
                 </select>
@@ -371,14 +353,14 @@ export const VillageMasterPage: React.FC = () => {
 
               <div>
                 <label className="block font-bold text-slate-700 mb-1">
-                  गाव / वस्तीचे नाव (village_name) *
+                  गाव / वस्तीचे नाव *
                 </label>
                 <input
                   type="text"
                   required
                   value={villageName}
                   onChange={(e) => setVillageName(e.target.value)}
-                  placeholder="उदा. जातेगाव (मुख्य) किंवा वाघोले"
+                  placeholder="उदा. जातेगाव"
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-none"
                 />
               </div>
@@ -386,7 +368,7 @@ export const VillageMasterPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">
-                    अंदाजे लोकसंख्या (population)
+                    लोकसंख्या
                   </label>
                   <input
                     type="number"
@@ -400,7 +382,7 @@ export const VillageMasterPage: React.FC = () => {
 
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">
-                    एकूण कुटुंबे (total_houses)
+                    एकूण कुटुंबे
                   </label>
                   <input
                     type="number"
@@ -413,7 +395,7 @@ export const VillageMasterPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-200 flex justify-end gap-2">
+              <div className="pt-4 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
@@ -426,7 +408,7 @@ export const VillageMasterPage: React.FC = () => {
                   className="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-1.5 shadow-xs"
                 >
                   <Save className="w-4 h-4" />
-                  <span>{editingVillage ? 'बदल जतन करा' : 'गाव नोंदवा'}</span>
+                  <span>{editingVillage ? 'जतन करा' : 'जोडा'}</span>
                 </button>
               </div>
             </form>

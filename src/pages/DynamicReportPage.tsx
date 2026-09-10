@@ -11,6 +11,8 @@ import {
   FileSpreadsheet, User, MapPin, Calendar, Activity, XCircle, AlertTriangle
 } from 'lucide-react';
 import { DynamicRecordForm } from '../components/DynamicRecordForm';
+import { exportElementToPDF } from '../utils/pdfExport';
+import { FileText } from 'lucide-react';
 
 export default function DynamicReportPage({
   onNavigate,
@@ -44,6 +46,7 @@ export default function DynamicReportPage({
   const [filterDateRange, setFilterDateRange] = useState<string>('this_month');
   const [customFromDate, setCustomFromDate] = useState<string>('');
   const [customToDate, setCustomToDate] = useState<string>('');
+  const [filterResultValues, setFilterResultValues] = useState<Record<string, string>>({});
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -123,6 +126,11 @@ export default function DynamicReportPage({
     return specified.length > 0 ? specified : activeFields.slice(0, 8);
   }, [activeFields]);
 
+  
+  const resultFields = useMemo(() => {
+    return activeFields.filter(f => f.field_type === 'result');
+  }, [activeFields]);
+
   const filteredRecords = useMemo(() => {
     let result = [...allRecords];
 
@@ -134,6 +142,17 @@ export default function DynamicReportPage({
         return dataStr.includes(q);
       });
     }
+
+    
+    // Result Fields filtering
+    Object.entries(filterResultValues).forEach(([key, val]) => {
+      if (val && val !== 'all') {
+        result = result.filter(r => {
+          const recData = r.record_data || {};
+          return recData[key] === val;
+        });
+      }
+    });
 
     // Subcentre
     if (filterSubcentreId !== 'all') {
@@ -342,6 +361,12 @@ export default function DynamicReportPage({
           >
             <Download className="w-4 h-4" /> <span>CSV Export (Excel)</span>
           </button>
+          <button 
+            onClick={() => exportElementToPDF('printable-report-container', `${template?.template_name || 'report'}.pdf`, 'l')} 
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-red-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-red-700 shadow-xs cursor-pointer"
+          >
+            <FileText className="w-4 h-4" /> <span>PDF Export</span>
+          </button>
         </div>
       </div>
 
@@ -357,6 +382,29 @@ export default function DynamicReportPage({
           <span>एकूण नोंदी संख्या: {filteredRecords.length}</span>
           <span>दिनांक: {new Date().toLocaleDateString('mr-IN')}</span>
         </div>
+
+        {/* Result Summaries */}
+        {resultFields.length > 0 && (
+          <div className="flex flex-wrap gap-4 mt-3 pt-3 border-t border-slate-300">
+            {resultFields.map(f => {
+              const opts = f.options_json || [];
+              return (
+                <div key={f.id} className="flex gap-2 text-xs font-medium">
+                  <span className="text-slate-600">{f.field_label}:</span>
+                  {opts.map((opt: any, idx: number) => {
+                    const count = filteredRecords.filter(r => (r.record_data || {})[f.field_key] === (opt.value || opt.label)).length;
+                    return (
+                      <span key={idx} className="bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded">
+                        {opt.label}: {count}
+                      </span>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
       </div>
 
       {/* Filters (Hidden in print) */}
@@ -415,6 +463,25 @@ export default function DynamicReportPage({
               </select>
             </>
           )}
+
+          
+          {/* Result Filters */}
+          {resultFields.map(f => {
+            const opts = f.options_json || [];
+            return (
+              <select
+                key={f.id}
+                value={filterResultValues[f.field_key] || 'all'}
+                onChange={e => setFilterResultValues(prev => ({ ...prev, [f.field_key]: e.target.value }))}
+                className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white font-medium text-teal-700"
+              >
+                <option value="all">सर्व {f.field_label}</option>
+                {opts.map((opt: any, idx: number) => (
+                  <option key={idx} value={opt.value || opt.label}>{opt.label}</option>
+                ))}
+              </select>
+            );
+          })}
 
           {/* Date Filter */}
           <select
