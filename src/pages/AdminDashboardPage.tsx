@@ -1,16 +1,99 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageId } from '../types';
 import { 
   Building2, Home, MapPin, Users, 
   Wrench, Flag, Clock, ShieldCheck, 
   Database, Activity, Target
 } from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
+} from 'recharts';
+import { malariaService } from '../services/malariaService';
+import { tbService } from '../services/tbService';
+import { templateService } from '../services/templateService';
 
 interface AdminDashboardPageProps {
   onNavigate: (page: PageId) => void;
 }
 
 export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onNavigate }) => {
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadStats() {
+      setIsLoading(true);
+      try {
+        const malariaSamples = await malariaService.getSamples();
+        const malariaPending = malariaSamples.filter(s => !s.test_result || s.test_result === 'Pending').length;
+        const malariaCompleted = malariaSamples.length - malariaPending;
+
+        const tbSamples = await tbService.getSamples();
+        const tbPending = tbSamples.filter(s => !s.test_result || s.test_result === 'Pending').length;
+        const tbCompleted = tbSamples.length - tbPending;
+
+        let dynamicPending = 0;
+        let dynamicCompleted = 0;
+
+        const templates = await templateService.getTemplates();
+        for (const tpl of templates) {
+          if (!tpl.is_active) continue;
+          const fields = await templateService.getTemplateFields(tpl.id);
+          const resultFields = fields.filter(f => f.field_type === 'result');
+          if (resultFields.length > 0) {
+            const records = await templateService.getDynamicRecords(tpl.id);
+            for (const rec of records) {
+              let isPending = false;
+              for (const rf of resultFields) {
+                const val = rec.record_data?.[rf.field_key];
+                if (!val || val === 'Pending' || val === 'प्रलंबित') {
+                  isPending = true;
+                  break;
+                }
+              }
+              if (isPending) {
+                dynamicPending++;
+              } else {
+                dynamicCompleted++;
+              }
+            }
+          }
+        }
+
+        setChartData([
+          {
+            name: 'Malaria',
+            Pending: malariaPending,
+            Completed: malariaCompleted,
+          },
+          {
+            name: 'TB',
+            Pending: tbPending,
+            Completed: tbCompleted,
+          },
+          {
+            name: 'Dynamic Registers',
+            Pending: dynamicPending,
+            Completed: dynamicCompleted,
+          }
+        ]);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadStats();
+  }, []);
+
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 pb-20">
       <div className="flex items-center justify-between mb-2">
@@ -23,6 +106,38 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onNaviga
             प्रशासनिक नियंत्रण आणि संनियंत्रण (PHC Controller)
           </p>
         </div>
+      </div>
+
+      {/* 0. Summary Chart */}
+      <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+        <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-4 border-b border-slate-100 pb-2">
+          <Activity className="w-4 h-4 text-indigo-600" />
+          चाचणी स्थिती सारांश (Testing Overview)
+        </h2>
+        
+        {isLoading ? (
+          <div className="h-64 flex items-center justify-center text-sm text-slate-500">माहिती लोड होत आहे...</div>
+        ) : (
+          <div className="h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={chartData}
+                margin={{ top: 10, right: 30, left: 0, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                <Tooltip 
+                  cursor={{ fill: '#f8fafc' }}
+                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }}
+                />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                <Bar dataKey="Pending" name="प्रलंबित (Pending)" stackId="a" fill="#f59e0b" radius={[0, 0, 4, 4]} />
+                <Bar dataKey="Completed" name="पूर्ण (Completed)" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
 
       {/* 1. Master Data */}
