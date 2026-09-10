@@ -68,6 +68,7 @@ export type PageId =
   | 'tb-reports'
   | 'data-migration'
   | 'dynamic-report'
+  | 'pending-dynamic-records'
   | 'sql-query'
   | 'admin-dashboard';
 
@@ -577,6 +578,8 @@ export interface RecordRegisterTemplate {
   description: string | null;
   icon: string | null;
   register_type?: string;
+  usage_type?: string;
+  requires_result?: boolean;
   is_active: boolean;
   display_order: number;
   created_by?: string;

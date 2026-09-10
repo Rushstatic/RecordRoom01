@@ -1,5 +1,6 @@
 import { storage } from './lib/storage';
 import DynamicReportPage from './pages/DynamicReportPage';
+import PendingDynamicRecordsPage from './pages/PendingDynamicRecordsPage';
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { AppLayout } from './layouts/AppLayout';
@@ -157,6 +158,8 @@ const AppContent: React.FC = () => {
         return <SendSamplesPage />;
       case 'dynamic-report':
         return <DynamicReportPage onNavigate={setCurrentPage} templateId={selectedTemplateId || storage.getItem('selectedTemplateId') || ''} />;
+      case 'pending-dynamic-records':
+        return <PendingDynamicRecordsPage onNavigate={setCurrentPage} />;
       case 'reports':
       case 'malaria-reports':
         return <ReportsPage onNavigate={setCurrentPage} />;

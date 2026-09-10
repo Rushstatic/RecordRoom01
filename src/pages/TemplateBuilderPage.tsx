@@ -57,6 +57,25 @@ export default function TemplateBuilderPage({
   const [previewFields, setPreviewFields] = useState<RecordTemplateField[]>([]);
   const [loadingPreview, setLoadingPreview] = useState(false);
 
+  const [resultOptions, setResultOptions] = useState<{label: string; value: string}[]>([
+    { label: 'Positive', value: 'Positive' },
+    { label: 'Negative', value: 'Negative' },
+    { label: 'Pending', value: 'Pending' }
+  ]);
+  
+  const addResultOption = () => setResultOptions([...resultOptions, { label: '', value: '' }]);
+  const updateResultOption = (index: number, val: string) => {
+    const newOpts = [...resultOptions];
+    newOpts[index] = { label: val, value: val };
+    setResultOptions(newOpts);
+  };
+  const removeResultOption = (index: number) => {
+    const newOpts = [...resultOptions];
+    newOpts.splice(index, 1);
+    setResultOptions(newOpts);
+  };
+
+
   useEffect(() => {
     if (!isPhcController) {
       onNavigate('dashboard');
@@ -114,20 +133,51 @@ export default function TemplateBuilderPage({
     }
 
     try {
+      
+      const isNew = !editingTemplate.id;
       const templateId = editingTemplate.id || crypto.randomUUID();
       const newTemplate: RecordRegisterTemplate = {
         id: templateId,
         register_code: cleanCode,
         register_name: editingTemplate.register_name.trim(),
-        program_name: editingTemplate.program_name?.trim() || null,
-        description: editingTemplate.description?.trim() || null,
+        program_name: editingTemplate.program_name || null,
+        description: editingTemplate.description || null,
         icon: editingTemplate.icon || 'FileText',
+        register_type: editingTemplate.register_type || 'Other',
+        usage_type: editingTemplate.usage_type || 'सामान्य नोंदवही',
+        requires_result: editingTemplate.requires_result || false,
         is_active: editingTemplate.is_active ?? true,
         display_order: editingTemplate.display_order || templates.length + 1,
         created_by: user?.id,
       };
       
       await templateService.saveTemplate(newTemplate);
+      
+      // If new, and requires result, auto-add a result field
+      if (isNew && newTemplate.usage_type === 'नमुना नोंदवही' && newTemplate.requires_result) {
+        await templateService.saveTemplateField({
+          id: crypto.randomUUID(),
+          template_id: templateId,
+          field_key: 'result_outcome',
+          field_label: 'तपासणी निकाल',
+          field_type: 'result',
+          field_order: 99,
+          is_required: true,
+          is_searchable: true,
+          show_in_list: true,
+          show_in_report: true,
+          show_in_print: true,
+          default_value: null,
+          placeholder: 'निकाल निवडा',
+          help_text: null,
+          options_json: resultOptions.filter(o => o.label.trim() !== ''),
+          is_active: true,
+          validation_json: null,
+          automation_json: null,
+          conditional_json: null
+        });
+      }
+
       setShowModal(false);
       setSuccessMsg('नोंदवही यशस्वीरित्या जतन केली गेली.');
       setTimeout(() => setSuccessMsg(null), 3000);
@@ -549,11 +599,18 @@ export default function TemplateBuilderPage({
                             <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-bold border border-slate-200">
                               {t.register_code}
                             </span>
+                            
                             {t.register_type && (
                               <span className="text-[11px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-bold border border-blue-200">
                                 {t.register_type}
                               </span>
                             )}
+                            {t.usage_type && (
+                              <span className="text-[11px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-bold border border-amber-200">
+                                {t.usage_type}
+                              </span>
+                            )}
+
 
                             {t.description && (
                               <span className="text-xs text-slate-500 truncate max-w-xs">{t.description}</span>

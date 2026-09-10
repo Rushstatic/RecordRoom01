@@ -21,6 +21,7 @@ const FIELD_TYPE_LABELS: Partial<Record<FieldType, { label: string; desc: string
   checkbox: { label: 'Checkbox', desc: 'चेकबॉक्स', category: 'पर्याय' },
   result: { label: 'Result / Outcome', desc: 'निकाल / निष्कर्ष', category: 'पर्याय' },
   auto_date: { label: 'Auto Date', desc: 'स्वयंचलित तारीख', category: 'प्रगत' },
+  auto_number: { label: 'Auto Number', desc: 'स्वयंचलित क्रमांक', category: 'प्रगत' },
 };
 
 const PRESET_OPTIONS: Record<string, { label: string; options: { value: string; label: string }[] }> = {
@@ -100,6 +101,18 @@ export default function TemplateFieldsPage({
   
   // Custom option pairs state for Dropdown / Radio / Checkbox
   const [customOptions, setCustomOptions] = useState<{ value: string; label: string }[]>([]);
+  const [autoNumberConfig, setAutoNumberConfig] = useState<{
+    prefix: string;
+    format: string;
+    scope: 'register' | 'employee' | 'village';
+    reset: 'never' | 'yearly';
+  }>({
+    prefix: '',
+    format: '0001',
+    scope: 'register',
+    reset: 'never'
+  });
+
   
   // Conditional logic state
   const [enableCondition, setEnableCondition] = useState(false);
@@ -167,6 +180,7 @@ export default function TemplateFieldsPage({
     setCondOperator('equals');
     setCondValue('');
     setCondAction('show');
+    setAutoNumberConfig({ prefix: '', format: '0001', scope: 'register', reset: 'never' });
     setShowModal(true);
   };
 
@@ -186,6 +200,20 @@ export default function TemplateFieldsPage({
       parsedOpts = [{ value: '', label: '' }];
     }
     setCustomOptions(parsedOpts);
+
+
+    // Auto Number
+    if (f.field_type === 'auto_number' && f.automation_json) {
+       let parsedAuto = { prefix: '', format: '0001', scope: 'register', reset: 'never' };
+       if (typeof f.automation_json === 'string') {
+          try { parsedAuto = JSON.parse(f.automation_json); } catch(e){}
+       } else {
+          parsedAuto = f.automation_json;
+       }
+       setAutoNumberConfig(parsedAuto as any);
+    } else {
+       setAutoNumberConfig({ prefix: '', format: '0001', scope: 'register', reset: 'never' });
+    }
 
     // Conditional
     if (f.conditional_json && (f.conditional_json.depends_on || f.conditional_json.field)) {
@@ -245,6 +273,18 @@ export default function TemplateFieldsPage({
       };
     }
 
+
+    let automationJson = editingField.automation_json || null;
+    if (editingField.field_type === 'auto_number') {
+      automationJson = {
+        type: 'auto_number',
+        prefix: autoNumberConfig.prefix,
+        format: autoNumberConfig.format,
+        scope: autoNumberConfig.scope,
+        reset: autoNumberConfig.reset
+      };
+    }
+
     try {
       const newFieldId = editingField.id || crypto.randomUUID();
       const savedField: RecordTemplateField = {
@@ -264,7 +304,7 @@ export default function TemplateFieldsPage({
         help_text: editingField.help_text || null,
         options_json: optionsJson,
         validation_json: editingField.validation_json || null,
-        automation_json: editingField.automation_json || null,
+        automation_json: automationJson,
         conditional_json: conditionalJson,
         is_active: editingField.is_active ?? true,
       };
@@ -579,6 +619,64 @@ export default function TemplateFieldsPage({
                   </select>
                 </div>
                 
+
+                {editingField.field_type === 'auto_number' && (
+                  <div className="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100 space-y-4">
+                    <h4 className="text-xs font-bold text-emerald-950 uppercase tracking-wide">
+                      Auto Number Configuration
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-800">Prefix (e.g. TB, NCD)</label>
+                        <input
+                          type="text"
+                          value={autoNumberConfig.prefix}
+                          onChange={e => setAutoNumberConfig({...autoNumberConfig, prefix: e.target.value.toUpperCase()})}
+                          placeholder="Optional Prefix"
+                          className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-800">Format Structure *</label>
+                        <select
+                          value={autoNumberConfig.format}
+                          onChange={e => setAutoNumberConfig({...autoNumberConfig, format: e.target.value})}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm"
+                        >
+                          <option value="1">1, 2, 3...</option>
+                          <option value="01">01, 02...</option>
+                          <option value="001">001, 002...</option>
+                          <option value="0001">0001, 0002...</option>
+                          <option value="00001">00001, 00002...</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-800">Numbering Scope *</label>
+                        <select
+                          value={autoNumberConfig.scope}
+                          onChange={e => setAutoNumberConfig({...autoNumberConfig, scope: e.target.value as any})}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm"
+                        >
+                          <option value="register">Register-wise (नोंदवही नुसार)</option>
+                          <option value="employee">Employee-wise (कर्मचारी नुसार)</option>
+                          <option value="village">Village-wise (गावानुसार)</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-800">Reset Rule *</label>
+                        <select
+                          value={autoNumberConfig.reset}
+                          onChange={e => setAutoNumberConfig({...autoNumberConfig, reset: e.target.value as any})}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm"
+                        >
+                          <option value="never">Never (कधीही नाही)</option>
+                          <option value="yearly">Yearly (दरवर्षी 1 पासून सुरू)</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {['dropdown', 'radio', 'result'].includes(editingField.field_type || '') && (
                   <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 space-y-3">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
