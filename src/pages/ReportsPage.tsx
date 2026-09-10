@@ -12,10 +12,11 @@ interface ReportsPageProps {
 }
 
 export const ReportsPage: React.FC<ReportsPageProps> = ({ onNavigate }) => {
-  const { role } = useAuth();
+  const { role, user, userContext } = useAuth();
+  const isPhcController = role === 'phc_controller' || user?.role === 'phc_controller' || userContext?.role === 'phc_controller';
 
   // For Subcentre Employee, display the dedicated, simplified reports with exact filters & A4 print
-  if (role === 'subcentre_employee') {
+  if (!isPhcController) {
     return <SubcentreEmployeeReportsView onNavigate={onNavigate} />;
   }
 

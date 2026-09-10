@@ -13,6 +13,7 @@ import {
 import { DynamicRecordForm } from '../components/DynamicRecordForm';
 import { exportElementToPDF } from '../utils/pdfExport';
 import { FileText } from 'lucide-react';
+import SubcentreEmployeeReportsView from '../components/reports/SubcentreEmployeeReportsView';
 
 export default function DynamicReportPage({
   onNavigate,
@@ -21,8 +22,18 @@ export default function DynamicReportPage({
   onNavigate: (page: PageId) => void;
   templateId?: string;
 }) {
-  const { user, role } = useAuth();
-  const isPhcController = role === 'phc_controller' || user?.role === 'phc_controller';
+  const { user, role, userContext } = useAuth();
+  const isPhcController = role === 'phc_controller' || user?.role === 'phc_controller' || userContext?.role === 'phc_controller';
+
+  // Subcentre employee uses the dedicated Subcentre Employee dynamic reports view
+  if (!isPhcController) {
+    return (
+      <SubcentreEmployeeReportsView
+        onNavigate={onNavigate}
+        initialRegisterId={templateId || storage.getItem('selectedTemplateId') || undefined}
+      />
+    );
+  }
 
   const canEditRecord = (record: DynamicRecordEntry) => {
     if (!record.created_at) return true; // allow edit if date missing
