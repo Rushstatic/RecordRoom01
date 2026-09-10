@@ -1,2 +1,4 @@
 const fs = require('fs');
-console.log('done');
+const content = fs.readFileSync('src/pages/MalariaTargetsPage.tsx', 'utf8');
+
+// I will extract the if (!isPhcController) replacement.

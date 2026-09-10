@@ -17,7 +17,7 @@ import {
   ChevronRight,
   TrendingUp,
   FileText,
-  HelpCircle,
+  HelpCircle, AlertTriangle,
   Eye,
   WifiOff,
   CloudOff,
@@ -103,6 +103,7 @@ export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNaviga
   const [villages, setVillages] = useState<VillageMaster[]>([]);
   const [employees, setEmployees] = useState<EmployeeMaster[]>([]);
   const [allSamples, setAllSamples] = useState<MalariaBloodSample[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   // Active Report Sub-Tab
@@ -157,54 +158,37 @@ export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNaviga
       let sampleList = rawSampleList;
 
       if (role === 'subcentre_employee') {
-        const allowedScSet = new Set(applicableSubcentreIds);
+        const allowedScSet = new Set(applicableSubcentreIds || []);
         if (allowedScSet.size > 0) {
           filteredScList = scList.filter((s) => allowedScSet.has(s.id));
           filteredVilList = vilList.filter((v) => allowedScSet.has(v.subcentre_id));
           filteredEmpList = empList.filter(
             (e) => allowedScSet.has(e.subcentre_id) || e.id === user?.employeeId
           );
-          sampleList = rawSampleList.filter(
-            (s) =>
-              (s.subcentre_id && allowedScSet.has(s.subcentre_id)) ||
-              s.employee_id === user?.employeeId
-          );
-        } else if (user?.employeeId) {
+        }
+        // STRICT EMPLOYEE SCOPE RULE:
+        if (user?.employeeId) {
           sampleList = rawSampleList.filter((s) => s.employee_id === user.employeeId);
+        } else {
+          sampleList = [];
         }
       }
-
       setPhcs(phcList);
       setSubcentres(filteredScList);
       setVillages(filteredVilList);
       setEmployees(filteredEmpList);
       setAllSamples(sampleList);
 
-      // Set role-based initial filters
-      if (role === 'subcentre_employee') {
-        let matchedEmp = empList.find(
-          (e) =>
-            e.id === user?.employeeId ||
-            e.employee_name === user?.marathiName ||
-            e.employee_name === user?.name
-        );
-        if (!matchedEmp && empList.length > 0) {
-          matchedEmp = empList.find((e) => e.is_active) || empList[0];
-        }
-
-        if (matchedEmp) {
-          setFilterEmployeeId(matchedEmp.id);
-
-          const parentSc = scList.find((s) => s.id === matchedEmp.subcentre_id);
-          if (parentSc) {
-          }
-        }
+      // Filters for PHC Controller only
+      if (role !== 'subcentre_employee') {
+        // ... anything to do for controller ...
       } else {
-        // PHC Controller default
-        
+        // Employee doesn't need to manually filter themselves; they are locked to their UUID.
+        setFilterEmployeeId('');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load malaria report data:', err);
+      setError(err.message || 'अहवाल लोड करता आला नाही. कृपया पुन्हा प्रयत्न करा.');
     } finally {
       setLoading(false);
     }
@@ -212,6 +196,13 @@ export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNaviga
 
   useEffect(() => {
     loadData();
+    const handleSync = () => loadData();
+    window.addEventListener('arogya-sample-saved', handleSync);
+    window.addEventListener('arogya-sync-status-changed', handleSync);
+    return () => {
+      window.removeEventListener('arogya-sample-saved', handleSync);
+      window.removeEventListener('arogya-sync-status-changed', handleSync);
+    };
   }, [loadData]);
 
   // Dependent Subcentres
@@ -1223,7 +1214,7 @@ export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNaviga
                 {paginatedCollectionSamples.length === 0 ? (
                   <tr>
                     <td colSpan={14} className="px-4 py-8 text-center text-slate-400 italic">
-                      या कालावधीत कोणतेही रक्त नमुने आढळले नाहीत.
+                      या कालावधीसाठी कोणतीही नोंद उपलब्ध नाही.
                     </td>
                   </tr>
                 ) : (

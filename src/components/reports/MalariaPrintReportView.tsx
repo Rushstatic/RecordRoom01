@@ -65,6 +65,15 @@ export const MalariaPrintReportView: React.FC<MalariaPrintReportViewProps> = ({
   dailyStats,
 }) => {
   return (
+    <>
+      <style type="text/css">
+        {`
+          @media print {
+            @page { size: A4 portrait; margin: 10mm; }
+          }
+        `}
+      </style>
+
     <div id="printable-malaria-general-report" className="hidden print:block font-sans text-black">
       {/* Official Government Header */}
       <div className="text-center border-b-2 border-slate-900 pb-3 mb-4">
@@ -369,5 +378,6 @@ export const MalariaPrintReportView: React.FC<MalariaPrintReportViewProps> = ({
         </div>
       </div>
     </div>
+    </>
   );
 };

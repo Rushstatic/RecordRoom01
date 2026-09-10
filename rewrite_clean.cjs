@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+const fs = require('fs');
+
+const code = `import React, { useState, useEffect, useMemo } from 'react';
 import {
   Flag, Target, PlusCircle, RefreshCw, Printer, Download, Search, Filter,
   AlertTriangle, CheckCircle2, Clock, Building2, Home, MapPin, Users, Edit2,
@@ -108,7 +110,7 @@ export const MalariaTargetsPage: React.FC<MalariaTargetsPageProps> = ({ onNaviga
       const actualSamples = vSamples.length;
       const remainingTarget = Math.max(0, targetValue - actualSamples);
       const progressPercent = targetValue > 0 ? Math.round((actualSamples / targetValue) * 100) : 0;
-      return { id: v.id, entityId: v.id, entityName: v.village_name, entityType: 'village', targetValue, actualSamples, remainingTarget, progressPercent, sentSamples: 0, pendingSamples: 0 , scopeLevel: "village", status: "PENDING"} as unknown as TargetProgressItem;
+      return { id: v.id, entityId: v.id, entityName: v.village_name, entityType: 'village', targetValue, actualSamples, remainingTarget, progressPercent, sentSamples: 0, pendingSamples: 0 } as TargetProgressItem;
     });
   }, [villages, activeTargetsInPeriod, samplesInPeriod]);
 
@@ -120,7 +122,7 @@ export const MalariaTargetsPage: React.FC<MalariaTargetsPageProps> = ({ onNaviga
       const actualSamples = eSamples.length;
       const remainingTarget = Math.max(0, targetValue - actualSamples);
       const progressPercent = targetValue > 0 ? Math.round((actualSamples / targetValue) * 100) : 0;
-      return { id: e.id, entityId: e.id, entityName: e.employee_name, entityType: 'employee', targetValue, actualSamples, remainingTarget, progressPercent, sentSamples: 0, pendingSamples: 0 , scopeLevel: "village", status: "PENDING"} as unknown as TargetProgressItem;
+      return { id: e.id, entityId: e.id, entityName: e.employee_name, entityType: 'employee', targetValue, actualSamples, remainingTarget, progressPercent, sentSamples: 0, pendingSamples: 0 } as TargetProgressItem;
     });
   }, [employees, activeTargetsInPeriod, samplesInPeriod]);
 
@@ -135,7 +137,7 @@ export const MalariaTargetsPage: React.FC<MalariaTargetsPageProps> = ({ onNaviga
       const actualSamples = scSamples.length;
       const remainingTarget = Math.max(0, targetValue - actualSamples);
       const progressPercent = targetValue > 0 ? Math.round((actualSamples / targetValue) * 100) : 0;
-      return { id: sc.id, entityId: sc.id, entityName: sc.subcentre_name, entityType: 'subcentre', targetValue, actualSamples, remainingTarget, progressPercent, sentSamples: 0, pendingSamples: 0 , scopeLevel: "village", status: "PENDING"} as unknown as TargetProgressItem;
+      return { id: sc.id, entityId: sc.id, entityName: sc.subcentre_name, entityType: 'subcentre', targetValue, actualSamples, remainingTarget, progressPercent, sentSamples: 0, pendingSamples: 0 } as TargetProgressItem;
     });
   }, [subcentres, villages, activeTargetsInPeriod, samplesInPeriod]);
 
@@ -276,7 +278,7 @@ export const MalariaTargetsPage: React.FC<MalariaTargetsPageProps> = ({ onNaviga
            <button
              key={tab}
              onClick={() => setActiveTab(tab as any)}
-             className={`px-4 py-2 rounded-lg text-sm font-bold capitalize ${activeTab === tab ? 'bg-emerald-100 text-emerald-900' : 'text-slate-600 hover:bg-slate-50'}`}
+             className={\`px-4 py-2 rounded-lg text-sm font-bold capitalize \${activeTab === tab ? 'bg-emerald-100 text-emerald-900' : 'text-slate-600 hover:bg-slate-50'}\`}
            >
              {tab}
            </button>
@@ -317,3 +319,6 @@ export const MalariaTargetsPage: React.FC<MalariaTargetsPageProps> = ({ onNaviga
     </div>
   );
 };
+`;
+
+fs.writeFileSync('src/pages/MalariaTargetsPage.tsx', code);
