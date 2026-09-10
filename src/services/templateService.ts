@@ -2,6 +2,7 @@ import { storage } from '../lib/storage';
 import { RecordRegisterTemplate, RecordTemplateField, DynamicRecordEntry } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { isDemoMode } from '../lib/env';
+import { authService } from './authService';
 import { assertValidUUID, isValidUUID } from '../utils/uuid';
 
 const TEMPLATES_KEY = 'arogya_register_templates';
@@ -296,6 +297,35 @@ class TemplateService {
     assertValidUUID(record.subcentre_id, 'उपकेंद्र ID');
     if (record.village_id) assertValidUUID(record.village_id, 'गाव ID');
 
+
+    // Edit deadline enforcement
+    if (isValidUUID(record.id)) {
+      let existingCreatedAt = null;
+      if (isSupabaseConfigured() && supabase) {
+         const { data } = await supabase.from('dynamic_record_entries').select('created_at').eq('id', record.id).single();
+         if (data) existingCreatedAt = data.created_at;
+      } else {
+         let raw = storage.getItem(DYNAMIC_RECORDS_KEY);
+         if (raw) {
+            let records = JSON.parse(raw);
+            const existing = records.find(r => r.id === record.id);
+            if (existing) existingCreatedAt = existing.created_at || null;
+         }
+      }
+      
+      if (existingCreatedAt) {
+        const createdTime = new Date(existingCreatedAt).getTime();
+        const diffDays = (Date.now() - createdTime) / (1000 * 60 * 60 * 24);
+        const user = authService.getCurrentUser();
+        const isPhcController = user?.role === 'phc_controller';
+        const limitDays = isPhcController ? 30 : 7;
+        
+        if (diffDays > limitDays) {
+           throw new Error('वेळमर्यादा संपली आहे (Time Limit Exceeded). ही जुनी नोंद आता Read Only आहे.');
+        }
+      }
+    }
+
     const validId = isValidUUID(record.id) ? record.id : crypto.randomUUID();
     const cleanRecord: DynamicRecordEntry = {
       ...record,
@@ -335,7 +365,7 @@ class TemplateService {
     let records = raw ? JSON.parse(raw) as DynamicRecordEntry[] : [];
     const index = records.findIndex(r => r.id === cleanRecord.id);
     if (index >= 0) {
-      records[index] = cleanRecord;
+      records[index] = { ...cleanRecord, created_at: records[index].created_at || cleanRecord.created_at };
     } else {
       records.push({ ...cleanRecord, created_at: new Date().toISOString() });
     }

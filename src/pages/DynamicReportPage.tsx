@@ -24,6 +24,20 @@ export default function DynamicReportPage({
   const { user, role } = useAuth();
   const isPhcController = role === 'phc_controller' || user?.role === 'phc_controller';
 
+  const canEditRecord = (record: DynamicRecordEntry) => {
+    if (!record.created_at) return true; // allow edit if date missing
+    const createdTime = new Date(record.created_at).getTime();
+    const now = Date.now();
+    const diffDays = (now - createdTime) / (1000 * 60 * 60 * 24);
+    
+    if (isPhcController) {
+      return diffDays <= 30; // 1 month approx
+    } else {
+      return diffDays <= 7;  // 7 days for employee
+    }
+  };
+
+
   const [availableTemplates, setAvailableTemplates] = useState<RecordRegisterTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(
     templateId || storage.getItem('selectedTemplateId') || ''
@@ -560,6 +574,7 @@ export default function DynamicReportPage({
                     );
                   })}
                   <td className="p-3 text-right print:hidden space-x-1 whitespace-nowrap">
+                    
                     <button 
                       onClick={() => setViewRecord(r)}
                       className="p-1 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded" 
@@ -567,13 +582,20 @@ export default function DynamicReportPage({
                     >
                       <Eye className="w-4 h-4" />
                     </button>
-                    <button 
-                      onClick={() => setEditRecord(r)}
-                      className="p-1 text-indigo-600 hover:bg-indigo-50 rounded" 
-                      title="संपादित करा"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </button>
+                    {canEditRecord(r) ? (
+                      <button 
+                        onClick={() => setEditRecord(r)}
+                        className="p-1 text-indigo-600 hover:bg-indigo-50 rounded" 
+                        title="संपादित करा"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                    ) : (
+                      <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium border border-slate-200">
+                        Read Only
+                      </span>
+                    )}
+
                     {isPhcController && (
                       <button 
                         onClick={() => handleDelete(r.id)}
