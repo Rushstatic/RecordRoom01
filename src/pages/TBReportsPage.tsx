@@ -190,7 +190,7 @@ export const TBReportsPage: React.FC<TBReportsPageProps> = ({ onNavigate }) => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-4 pb-20">
+    <div id="tb-report-container" className="max-w-6xl mx-auto space-y-4 pb-20">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-4 rounded-xl shadow-xs border border-slate-200">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700">

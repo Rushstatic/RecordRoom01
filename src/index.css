@@ -14,14 +14,17 @@
   #printable-malaria-coverage-report,
   #printable-malaria-coverage-report *,
   #printable-malaria-target-report,
-  #printable-malaria-target-report * {
+  #printable-malaria-target-report *,
+  #printable-employee-report,
+  #printable-employee-report * {
     visibility: visible;
   }
 
   #printable-malaria-report,
   #printable-malaria-general-report,
   #printable-malaria-coverage-report,
-  #printable-malaria-target-report {
+  #printable-malaria-target-report,
+  #printable-employee-report {
     position: absolute;
     left: 0;
     top: 0;

@@ -327,7 +327,7 @@ export default function DynamicReportPage({
   }
 
   return (
-    <div className="p-4 sm:p-6 pb-24 max-w-7xl mx-auto space-y-6">
+    <div id="printable-report-container" className="p-4 sm:p-6 pb-24 max-w-7xl mx-auto space-y-6">
       {/* Non-print Top Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
         <div className="flex items-center gap-3">

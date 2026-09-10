@@ -706,7 +706,7 @@ export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNaviga
   };
 
   return (
-    <div className="space-y-6">
+    <div id="malaria-report-container" className="space-y-6">
       {/* CODE 12: Offline Pending Drafts Alert in Reports */}
       {pendingDraftsCount > 0 && (
         <div className="bg-amber-50 border-2 border-amber-400 p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs print:hidden">

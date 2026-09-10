@@ -6,9 +6,16 @@ export const exportElementToPDF = async (
   filename: string = 'report.pdf',
   orientation: 'p' | 'l' = 'p'
 ) => {
-  const element = document.getElementById(elementId);
+  let element = document.getElementById(elementId);
   if (!element) {
-    console.error(`Element with id ${elementId} not found`);
+    // Attempt fallback lookups
+    element = document.querySelector(`[id*="${elementId}"]`) || 
+              document.querySelector(`.${elementId}`) ||
+              document.querySelector('main');
+  }
+
+  if (!element) {
+    console.warn(`Element with id "${elementId}" not found`);
     return;
   }
 

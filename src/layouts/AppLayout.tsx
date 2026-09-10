@@ -99,47 +99,53 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-100 text-slate-900 font-sans pb-16 md:pb-0">
+    <div className="min-h-screen flex flex-col bg-slate-100 text-slate-900 font-sans pb-16 md:pb-0 print:pb-0 print:bg-white">
       {/* PWA Install Banner */}
-      <PWAInstallBanner />
+      <div className="print:hidden">
+        <PWAInstallBanner />
+      </div>
 
       {/* Top Header with 3 Main Tabs & Notification Bell */}
-      <Header
-        isSidebarOpen={isSidebarOpen}
-        onToggleSidebar={toggleSidebar}
-        onNavigateLogin={() => onNavigate('login')}
-        onNavigatePage={onNavigate}
-        currentTab={currentTab}
-        onSelectTab={handleSelectTab}
-        isAccountModalOpen={isAccountModalOpen}
-        setIsAccountModalOpen={setIsAccountModalOpen}
-      />
-
-      {/* Secondary Sub-navigation Bar for Data Entry and Reports */}
-      <SubNavBar
-        currentTab={currentTab}
-        currentPage={currentPage}
-        onNavigate={onNavigate}
-        pendingDraftsCount={pendingDraftsCount}
-        pendingSamplesCount={pendingSamplesCount}
-      />
-
-      {/* Main Content Layout with Sidebar */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar (Desktop & Mobile Drawer) */}
-        <Sidebar
-          currentPage={currentPage}
-          onNavigate={onNavigate}
-          isOpen={isSidebarOpen}
-          onCloseMobile={closeSidebarMobile}
-          onOpenAccountModal={() => setIsAccountModalOpen(true)}
-          pendingSamplesCount={pendingSamplesCount}
+      <div className="print:hidden">
+        <Header
+          isSidebarOpen={isSidebarOpen}
+          onToggleSidebar={toggleSidebar}
+          onNavigateLogin={() => onNavigate('login')}
+          onNavigatePage={onNavigate}
+          currentTab={currentTab}
+          onSelectTab={handleSelectTab}
+          isAccountModalOpen={isAccountModalOpen}
+          setIsAccountModalOpen={setIsAccountModalOpen}
         />
 
+        {/* Secondary Sub-navigation Bar for Data Entry and Reports */}
+        <SubNavBar
+          currentTab={currentTab}
+          currentPage={currentPage}
+          onNavigate={onNavigate}
+          pendingDraftsCount={pendingDraftsCount}
+          pendingSamplesCount={pendingSamplesCount}
+        />
+      </div>
+
+      {/* Main Content Layout with Sidebar */}
+      <div className="flex-1 flex overflow-hidden print:overflow-visible">
+        {/* Left Sidebar (Desktop & Mobile Drawer) */}
+        <div className="print:hidden">
+          <Sidebar
+            currentPage={currentPage}
+            onNavigate={onNavigate}
+            isOpen={isSidebarOpen}
+            onCloseMobile={closeSidebarMobile}
+            onOpenAccountModal={() => setIsAccountModalOpen(true)}
+            pendingSamplesCount={pendingSamplesCount}
+          />
+        </div>
+
         {/* Main Content Area */}
-        <main className="flex-1 flex flex-col overflow-y-auto min-w-0 bg-slate-50/70">
+        <main className="flex-1 flex flex-col overflow-y-auto min-w-0 bg-slate-50/70 print:overflow-visible print:bg-white">
           {/* Subtle Institutional Breadcrumb & Context Sub-banner */}
-          <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2 shadow-2xs">
+          <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2 shadow-2xs print:hidden">
             <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600">
               <span className="font-semibold text-emerald-800">
                 {currentTab === 'admin' && '⚙️ Admin'}
@@ -189,12 +195,12 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           </div>
 
           {/* Page Dynamic Content */}
-          <div className="flex-1 p-3 sm:p-6 max-w-7xl w-full mx-auto">
+          <div className="flex-1 p-3 sm:p-6 max-w-7xl w-full mx-auto print:p-0 print:max-w-none">
             {children}
           </div>
 
           {/* Institutional Footer */}
-          <footer className="mt-auto bg-white border-t border-slate-200 py-3.5 px-6 text-xs text-slate-500">
+          <footer className="mt-auto bg-white border-t border-slate-200 py-3.5 px-6 text-xs text-slate-500 print:hidden">
             <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
               <div className="flex items-center gap-2 text-slate-600 font-medium">
                 <HeartPulse className="w-4 h-4 text-rose-600" />
@@ -209,12 +215,14 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       </div>
 
       {/* Android Mobile Bottom Navigation Bar (Dashboard | Data Entry | Reports) */}
-      <MobileBottomNav
-        currentTab={currentTab}
-        onSelectTab={handleSelectTab}
-        pendingDraftsCount={pendingDraftsCount}
-        pendingSamplesCount={pendingSamplesCount}
-      />
+      <div className="print:hidden">
+        <MobileBottomNav
+          currentTab={currentTab}
+          onSelectTab={handleSelectTab}
+          pendingDraftsCount={pendingDraftsCount}
+          pendingSamplesCount={pendingSamplesCount}
+        />
+      </div>
 
       {/* My Account Modal */}
       <MyAccountModal

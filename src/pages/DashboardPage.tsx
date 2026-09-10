@@ -42,6 +42,7 @@ import { targetService } from '../services/targetService';
 import { validationService } from '../services/validationService';
 import { offlineDraftService } from '../services/offlineDraftService';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { storage } from '../lib/storage';
 
 interface DashboardPageProps {
   onNavigate: (page: PageId) => void;
@@ -318,14 +319,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
              <button
-                onClick={() => onNavigate('reports')}
+                onClick={() => {
+                  storage.setItem('employee_report_filter_date', 'today');
+                  onNavigate('reports');
+                }}
                 className="bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-800 font-bold text-sm px-4 py-3 rounded-xl border border-slate-200 shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
                 <Calendar className="w-5 h-5 text-blue-600" />
                 <span>आजचा अहवाल</span>
               </button>
              <button
-                onClick={() => onNavigate('reports')}
+                onClick={() => {
+                  storage.setItem('employee_report_filter_date', 'this_month');
+                  onNavigate('reports');
+                }}
                 className="bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-800 font-bold text-sm px-4 py-3 rounded-xl border border-slate-200 shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
                 <BarChart3 className="w-5 h-5 text-indigo-600" />

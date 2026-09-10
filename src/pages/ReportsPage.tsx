@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { MalariaReportsPage } from './MalariaReportsPage';
 import { PageId, RecordRegisterTemplate } from '../types';
 import { templateService } from '../services/templateService';
+import { useAuth } from '../hooks/useAuth';
+import { SubcentreEmployeeReportsView } from '../components/reports/SubcentreEmployeeReportsView';
 import { FileSpreadsheet, BarChart3, Database } from 'lucide-react';
 
 interface ReportsPageProps {
@@ -10,6 +12,14 @@ interface ReportsPageProps {
 }
 
 export const ReportsPage: React.FC<ReportsPageProps> = ({ onNavigate }) => {
+  const { role } = useAuth();
+
+  // For Subcentre Employee, display the dedicated, simplified reports with exact filters & A4 print
+  if (role === 'subcentre_employee') {
+    return <SubcentreEmployeeReportsView onNavigate={onNavigate} />;
+  }
+
+  // For PHC Controller, maintain the full institutional reports untouched
   const [dynamicTemplates, setDynamicTemplates] = useState<RecordRegisterTemplate[]>([]);
 
   useEffect(() => {
