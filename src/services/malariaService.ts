@@ -240,7 +240,7 @@ export const malariaService = {
                 )
               )
             ),
-            employee:employee_master(
+            employee:employee_master!employee_id(
               id,
               employee_name,
               malaria_smear_code
@@ -571,7 +571,7 @@ export const malariaService = {
           .select(`
             *,
             village:village_master(village_name, subcentre:subcentre_master(id, subcentre_name, phc:phc_master(id, phc_name))),
-            employee:employee_master(employee_name, malaria_smear_code)
+            employee:employee_master!employee_id(employee_name, malaria_smear_code)
           `)
           .single();
 
@@ -587,7 +587,7 @@ export const malariaService = {
             .select(`
               *,
               village:village_master(village_name, subcentre:subcentre_master(id, subcentre_name, phc:phc_master(id, phc_name))),
-              employee:employee_master(employee_name, malaria_smear_code)
+              employee:employee_master!employee_id(employee_name, malaria_smear_code)
             `)
             .single();
         }

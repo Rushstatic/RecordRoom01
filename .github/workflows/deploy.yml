@@ -37,6 +37,9 @@ jobs:
         run: npm run build
         env:
           BASE_PATH: ${{ steps.pages.outputs.base_path }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://smhmgdwbiqsnrnavflrk.supabase.co' }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'sb_publishable_eF89esWMkXiR17kwJBr8ng_A8UmuHSU' }}
+          VITE_DEMO_MODE: 'false'
       - name: Create 404 fallback for GitHub Pages
         run: cp dist/index.html dist/404.html
       - name: Upload artifact
