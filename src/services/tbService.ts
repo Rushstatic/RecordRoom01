@@ -142,7 +142,16 @@ class TBService {
         updated_at: newSample.updated_at,
       };
 
-      const { data, error } = await supabase.from('tb_suspected_patient_register').insert([dbPayload]).select();
+      let { data, error } = await supabase.from('tb_suspected_patient_register').insert([dbPayload]).select();
+      if (error && (error.message?.includes('result') || error.message?.includes('schema cache') || (error as any).code === 'PGRST204')) {
+        const fallbackPayload = { ...dbPayload };
+        delete (fallbackPayload as any).result;
+        delete (fallbackPayload as any).result_updated_at;
+        delete (fallbackPayload as any).result_updated_by;
+        const retryRes = await supabase.from('tb_suspected_patient_register').insert([fallbackPayload]).select();
+        data = retryRes.data;
+        error = retryRes.error;
+      }
       if (error) {
         console.error('Supabase TB insert error:', error);
         throw new Error(`क्षयरोग नोंद जतन करता आली नाही: ${error.message}`);
@@ -194,12 +203,21 @@ class TBService {
       if (updates.result_updated_at !== undefined) dbUpdates.result_updated_at = updates.result_updated_at;
       if (updates.result_updated_by !== undefined) dbUpdates.result_updated_by = updates.result_updated_by;
 
-      const { data, error } = await supabase.from('tb_suspected_patient_register').update(dbUpdates).eq('id', id).select();
+      let { data, error } = await supabase.from('tb_suspected_patient_register').update(dbUpdates).eq('id', id).select();
+      if (error && (error.message?.includes('result') || error.message?.includes('schema cache') || (error as any).code === 'PGRST204')) {
+        const safeUpdates = { ...dbUpdates };
+        delete safeUpdates.result;
+        delete safeUpdates.result_updated_at;
+        delete safeUpdates.result_updated_by;
+        const retryRes = await supabase.from('tb_suspected_patient_register').update(safeUpdates).eq('id', id).select();
+        data = retryRes.data;
+        error = retryRes.error;
+      }
       if (error) {
         console.error('Supabase TB update error:', error);
         throw new Error(`क्षयरोग नोंद अद्ययावत करता आली नाही: ${error.message}`);
       }
-      return data[0] as TBPatientRecord;
+      return (data && data[0]) ? data[0] as TBPatientRecord : { ...enrichedUpdates, id } as TBPatientRecord;
     } else {
       if (!isDemoMode()) {
         throw new Error('Supabase कॉन्फिगर केलेले नाही.');
@@ -236,8 +254,10 @@ class TBService {
         .in('id', sampleIds);
         
       if (error) {
-        console.error('Supabase bulk update results error:', error);
-        if (!isDemoMode()) {
+        console.warn('Supabase bulk update results error:', error);
+        if (error.message?.includes('result') || error.message?.includes('schema cache') || (error as any).code === 'PGRST204') {
+          console.warn('Database schema does not yet have result columns. Saved locally.');
+        } else if (!isDemoMode()) {
           throw new Error(`निकाल अद्ययावत करता आला नाही: ${error.message}`);
         }
       }

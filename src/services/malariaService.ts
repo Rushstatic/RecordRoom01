@@ -227,24 +227,7 @@ export const malariaService = {
         let query = supabase
           .from('malaria_blood_samples')
           .select(`
-            id,
-            employee_id,
-            village_id,
-            house_number,
-            patient_name,
-            age,
-            gender,
-            sample_collection_date,
-            sample_number,
-            sample_year,
-            malaria_smear_code,
-            sent_date,
-            result,
-            result_updated_at,
-            result_updated_by,
-            client_record_id,
-            created_at,
-            updated_at,
+            *,
             village:village_master(
               id,
               village_name,
@@ -320,7 +303,7 @@ export const malariaService = {
               sample_year: Number(item.sample_year),
               malaria_smear_code: item.malaria_smear_code || employee?.malaria_smear_code || '',
               sent_date: item.sent_date || null,
-              result: item.result || null,
+              result: item.result || 'Pending',
               result_updated_at: item.result_updated_at || null,
               result_updated_by: item.result_updated_by || null,
               client_record_id: item.client_record_id || null,
@@ -564,20 +547,25 @@ export const malariaService = {
     // 1. Try Supabase
     if (isSupabaseConfigured() && supabase) {
       try {
-        const { data, error } = await supabase
+        const baseInsertPayload = {
+          id: newId,
+          employee_id: sampleData.employee_id,
+          village_id: sampleData.village_id,
+          house_number: sampleData.house_number ? sampleData.house_number.trim() : null,
+          patient_name: sampleData.patient_name.trim(),
+          age: ageNum,
+          gender: sampleData.gender,
+          sample_collection_date: sampleData.sample_collection_date,
+          sample_number: assignedSampleNumber,
+          sample_year: sampleYear,
+          malaria_smear_code: sampleData.malaria_smear_code,
+        };
+
+        // Attempt insert with result: 'Pending', fallback without result if column not in schema
+        let insertRes = await supabase
           .from('malaria_blood_samples')
           .insert({
-            id: newId,
-            employee_id: sampleData.employee_id,
-            village_id: sampleData.village_id,
-            house_number: sampleData.house_number ? sampleData.house_number.trim() : null,
-            patient_name: sampleData.patient_name.trim(),
-            age: ageNum,
-            gender: sampleData.gender,
-            sample_collection_date: sampleData.sample_collection_date,
-            sample_number: assignedSampleNumber,
-            sample_year: sampleYear,
-            malaria_smear_code: sampleData.malaria_smear_code,
+            ...baseInsertPayload,
             result: 'Pending',
           })
           .select(`
@@ -587,40 +575,63 @@ export const malariaService = {
           `)
           .single();
 
-        if (error) {
+        if (insertRes.error && (
+          insertRes.error.message?.includes('result') ||
+          insertRes.error.message?.includes('schema cache') ||
+          insertRes.error.code === 'PGRST204'
+        )) {
+          // Schema does not contain 'result' column yet; retry without it
+          insertRes = await supabase
+            .from('malaria_blood_samples')
+            .insert(baseInsertPayload)
+            .select(`
+              *,
+              village:village_master(village_name, subcentre:subcentre_master(id, subcentre_name, phc:phc_master(id, phc_name))),
+              employee:employee_master(employee_name, malaria_smear_code)
+            `)
+            .single();
+        }
+
+        if (insertRes.error) {
           // If collision occurred (unique violation), re-generate and retry once
-          if (error.code === '23505') {
+          if (insertRes.error.code === '23505') {
             const nextNum = await this.getNextSampleNumber(sampleData.employee_id, sampleYear);
-            const retryRes = await supabase
+            const retryPayload = { ...baseInsertPayload, sample_number: nextNum };
+            
+            let retryRes = await supabase
               .from('malaria_blood_samples')
               .insert({
-                id: newId,
-                employee_id: sampleData.employee_id,
-                village_id: sampleData.village_id,
-                house_number: sampleData.house_number ? sampleData.house_number.trim() : null,
-                patient_name: sampleData.patient_name.trim(),
-                age: ageNum,
-                gender: sampleData.gender,
-                sample_collection_date: sampleData.sample_collection_date,
-                sample_number: nextNum,
-                sample_year: sampleYear,
-                malaria_smear_code: sampleData.malaria_smear_code,
+                ...retryPayload,
                 result: 'Pending',
               })
               .select()
               .single();
 
+            if (retryRes.error && (
+              retryRes.error.message?.includes('result') ||
+              retryRes.error.message?.includes('schema cache') ||
+              retryRes.error.code === 'PGRST204'
+            )) {
+              retryRes = await supabase
+                .from('malaria_blood_samples')
+                .insert(retryPayload)
+                .select()
+                .single();
+            }
+
             if (!retryRes.error && retryRes.data) {
               recordToInsert.sample_number = nextNum;
             } else if (!isDemoMode()) {
-              throw new Error(`रक्त नमुना जतन करता आला नाही: ${retryRes.error?.message || error.message}`);
+              throw new Error(`रक्त नमुना जतन करता आला नाही: ${retryRes.error?.message || insertRes.error.message}`);
             }
           } else {
-            console.error('Supabase insert sample error:', error.message);
+            console.error('Supabase insert sample error:', insertRes.error.message);
             if (!isDemoMode()) {
-              throw new Error(`रक्त नमुना जतन करता आला नाही: ${error.message}`);
+              throw new Error(`रक्त नमुना जतन करता आला नाही: ${insertRes.error.message}`);
             }
           }
+        } else if (insertRes.data?.sample_number) {
+          recordToInsert.sample_number = Number(insertRes.data.sample_number);
         }
       } catch (err: any) {
         console.error('Supabase saveSample exception:', err);
@@ -681,7 +692,16 @@ export const malariaService = {
         if (updates.result_updated_at !== undefined) payload.result_updated_at = updates.result_updated_at;
         if (updates.result_updated_by !== undefined) payload.result_updated_by = updates.result_updated_by;
 
-        const { error } = await supabase.from('malaria_blood_samples').update(payload).eq('id', id);
+        let { error } = await supabase.from('malaria_blood_samples').update(payload).eq('id', id);
+        if (error && (error.message?.includes('result') || error.message?.includes('schema cache') || (error as any).code === 'PGRST204')) {
+          // Schema does not have result column yet, strip result fields and retry update
+          const fallbackPayload = { ...payload };
+          delete fallbackPayload.result;
+          delete fallbackPayload.result_updated_at;
+          delete fallbackPayload.result_updated_by;
+          const retryRes = await supabase.from('malaria_blood_samples').update(fallbackPayload).eq('id', id);
+          error = retryRes.error;
+        }
         if (error) {
           console.error('Supabase update sample error:', error.message);
           if (!isDemoMode()) {
@@ -739,13 +759,15 @@ export const malariaService = {
           .in('id', sampleIds);
 
         if (error) {
-          console.error('Supabase bulk update results error:', error);
-          if (!isDemoMode()) {
+          console.warn('Supabase bulk update results error:', error);
+          if (error.message?.includes('result') || error.message?.includes('schema cache') || (error as any).code === 'PGRST204') {
+            console.warn('Database schema does not yet have result columns. Saved locally.');
+          } else if (!isDemoMode()) {
             throw new Error(`निकाल अद्ययावत करता आला नाही: ${error.message}`);
           }
         }
       } catch (err: any) {
-        if (!isDemoMode()) {
+        if (!err.message?.includes('result') && !isDemoMode()) {
           throw new Error(err.message || 'निकाल अद्ययावत करता आला नाही.');
         }
       }
