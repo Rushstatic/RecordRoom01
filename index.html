@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-    <title>आरोग्य उपकेंद्र रेकॉर्ड कीपिंग सिस्टीम</title>
-    <meta name="description" content="सार्वजनिक आरोग्य विभाग - उपकेंद्र रेकॉर्ड कीपिंग आणि मलेरिया रक्त नमुना व्यवस्थापन प्रणाली (NVBDCP)" />
-    <meta property="og:title" content="आरोग्य उपकेंद्र रेकॉर्ड कीपिंग सिस्टीम" />
-    <meta property="og:description" content="सार्वजनिक आरोग्य विभाग - उपकेंद्र रेकॉर्ड कीपिंग आणि मलेरिया रक्त नमुना व्यवस्थापन प्रणाली (NVBDCP)" />
+    <title>Remix आरोग्य उपकेंद्र रेकॉर्ड प्रणाली</title>
+    <meta name="description" content="A professional Marathi health records management system for PHC and Subcentre data tracking using React and Supabase." />
+    <meta property="og:title" content="Remix आरोग्य उपकेंद्र रेकॉर्ड प्रणाली" />
+    <meta property="og:description" content="A professional Marathi health records management system for PHC and Subcentre data tracking using React and Supabase." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="theme-color" content="#064e3b" />
@@ -14,10 +14,19 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="आरोग्य उपकेंद्र" />
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <script>
+      // Automatic trailing-slash correction for GitHub Pages subdirectories
+      // Prevents 404 on assets when accessed as https://user.github.io/repo instead of https://user.github.io/repo/
+      (function() {
+        var pathname = window.location.pathname;
+        if (!pathname.endsWith('/') && !pathname.split('/').pop().includes('.')) {
+          window.location.replace(pathname + '/' + window.location.search + window.location.hash);
+        }
+      })();
+    </script>
+    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./pwa-192x192.png" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet" />
