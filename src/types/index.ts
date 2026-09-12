@@ -171,9 +171,9 @@ export interface TBPatientRecord {
   sample_type: TBSampleType;
   sample_given_at?: TBSampleGivenAt;
   
-  test_result?: string | null;
-  tested_on?: string | null;
-  tested_by?: string | null;
+  result?: string | null;
+  result_updated_at?: string | null;
+  result_updated_by?: string | null;
   
   client_record_id?: string | null;
   created_at?: string;
@@ -221,9 +221,9 @@ export interface MalariaBloodSample {
   sample_year: number;
   malaria_smear_code: string;
   sent_date?: string | null; // YYYY-MM-DD or null
-  test_result?: string | null; // e.g. Positive (Pf), Positive (Pv), Negative, Equivocal, Pending
-  tested_on?: string | null; // YYYY-MM-DD or null
-  tested_by?: string | null; // Employee ID or null
+  result?: string | null; // e.g. Positive (Pf), Positive (Pv), Negative, Equivocal, Pending
+  result_updated_at?: string | null; // YYYY-MM-DD or null
+  result_updated_by?: string | null; // Employee ID or null
   client_record_id?: string | null; // UUID idempotency key for safe offline sync
   created_at?: string;
   updated_at?: string;
@@ -582,13 +582,13 @@ export interface RecordTemplateField {
   show_in_list: boolean;
   show_in_report: boolean;
   show_in_print: boolean;
-  default_value: string | null;
-  placeholder: string | null;
-  help_text: string | null;
-  options_json: any | null;
-  validation_json: any | null;
-  automation_json: any | null;
-  conditional_json: any | null;
+  default_value?: string | null;
+  placeholder?: string | null;
+  help_text?: string | null;
+  options_json?: any | null;
+  validation_json?: any | null;
+  automation_json?: any | null;
+  conditional_json?: any | null;
   is_active: boolean;
   created_at?: string;
   updated_at?: string;

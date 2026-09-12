@@ -5,59 +5,353 @@ import { isDemoMode } from '../lib/env';
 import { authService } from './authService';
 import { assertValidUUID, isValidUUID } from '../utils/uuid';
 
+export const MALARIA_TEMPLATE_ID = 'b1000000-0000-4000-8000-000000000001';
+export const TB_TEMPLATE_ID = 'b2000000-0000-4000-8000-000000000002';
+
+export function normalizeTemplateId(id: string): string {
+  if (!id) return id;
+  const lower = id.toLowerCase();
+  if (
+    lower === 'malaria' ||
+    lower === MALARIA_TEMPLATE_ID ||
+    lower === 'b2000000-0000-4000-8000-000000000001' ||
+    lower === 'a1000000-0000-4000-8000-000000000001'
+  ) {
+    return MALARIA_TEMPLATE_ID;
+  }
+  if (lower === 'tb' || lower === TB_TEMPLATE_ID) {
+    return TB_TEMPLATE_ID;
+  }
+  return id;
+}
+
 const TEMPLATES_KEY = 'arogya_register_templates';
 const TEMPLATE_FIELDS_KEY = 'arogya_template_fields';
 const DYNAMIC_RECORDS_KEY = 'arogya_dynamic_records';
 
-const DEFAULT_TEMPLATES: RecordRegisterTemplate[] = [
+export const DEFAULT_TEMPLATES: RecordRegisterTemplate[] = [
   {
-    id: 'b1000000-0000-4000-8000-000000000001',
+    id: MALARIA_TEMPLATE_ID,
     register_code: 'MALARIA',
-    register_name: 'मलेरिया रक्त नमुना नोंद',
-    program_name: 'राष्ट्रीय हिवताप नियंत्रण कार्यक्रम',
-    description: 'मलेरिया रक्त नमुना नोंदवही',
+    register_name: 'मलेरिया रक्त नमुना नोंद (Malaria Register)',
+    program_name: 'राष्ट्रीय हिवताप नियंत्रण कार्यक्रम (NVBDCP)',
+    description: 'मलेरिया संशयित रक्त नमुना नोंदवही व प्रयोगशाळा निकाल',
     icon: 'Droplet',
+    register_type: 'रक्त नमुना नोंदवही',
+    usage_type: 'नमुना नोंदवही',
+    requires_result: true,
     is_active: true,
     display_order: 1,
     created_at: new Date().toISOString()
   },
   {
-    id: 'b2000000-0000-4000-8000-000000000002',
+    id: TB_TEMPLATE_ID,
     register_code: 'TB',
-    register_name: 'क्षयरोग संशयित रुग्ण नोंद',
-    program_name: 'राष्ट्रीय क्षयरोग निर्मूलन कार्यक्रम',
-    description: 'क्षयरोग संशयित रुग्ण नोंदवही',
+    register_name: 'क्षयरोग संशयित रुग्ण नोंद (TB Register)',
+    program_name: 'राष्ट्रीय क्षयरोग निर्मूलन कार्यक्रम (NTEP)',
+    description: 'क्षयरोग संशयित रुग्ण थुंकी/एक्स-रे नमुना नोंदवही व निकाल',
     icon: 'Activity',
+    register_type: 'थुंकी नमुना नोंदवही',
+    usage_type: 'नमुना नोंदवही',
+    requires_result: true,
     is_active: true,
     display_order: 2,
     created_at: new Date().toISOString()
   }
 ];
 
+export const DEFAULT_MALARIA_FIELDS: RecordTemplateField[] = [
+  {
+    id: 'f1000000-0000-4000-8000-000000000001',
+    template_id: MALARIA_TEMPLATE_ID,
+    field_key: 'sample_number',
+    field_label: 'रक्त नमुना क्रमांक (Blood Sample No.)',
+    field_type: 'number',
+    field_order: 1,
+    is_required: true,
+    is_searchable: true,
+    show_in_list: true,
+    show_in_report: true,
+    show_in_print: true,
+    is_active: true
+  },
+  {
+    id: 'f1000000-0000-4000-8000-000000000002',
+    template_id: MALARIA_TEMPLATE_ID,
+    field_key: 'patient_name',
+    field_label: 'रुग्णाचे पूर्ण नाव (Patient Name)',
+    field_type: 'text',
+    field_order: 2,
+    is_required: true,
+    is_searchable: true,
+    show_in_list: true,
+    show_in_report: true,
+    show_in_print: true,
+    is_active: true
+  },
+  {
+    id: 'f1000000-0000-4000-8000-000000000003',
+    template_id: MALARIA_TEMPLATE_ID,
+    field_key: 'age',
+    field_label: 'वय (Age)',
+    field_type: 'number',
+    field_order: 3,
+    is_required: true,
+    is_searchable: false,
+    show_in_list: true,
+    show_in_report: true,
+    show_in_print: true,
+    is_active: true
+  },
+  {
+    id: 'f1000000-0000-4000-8000-000000000004',
+    template_id: MALARIA_TEMPLATE_ID,
+    field_key: 'gender',
+    field_label: 'लिंग (Gender)',
+    field_type: 'dropdown',
+    field_order: 4,
+    is_required: true,
+    is_searchable: false,
+    show_in_list: true,
+    show_in_report: true,
+    show_in_print: true,
+    options_json: [
+      { label: 'पुरुष (Male)', value: 'पुरुष' },
+      { label: 'स्त्री (Female)', value: 'स्त्री' },
+      { label: 'इतर (Other)', value: 'इतर' }
+    ],
+    is_active: true
+  },
+  {
+    id: 'f1000000-0000-4000-8000-000000000005',
+    template_id: MALARIA_TEMPLATE_ID,
+    field_key: 'malaria_smear_code',
+    field_label: 'स्मिअर कोड / पट्टा क्र. (Smear Code)',
+    field_type: 'text',
+    field_order: 5,
+    is_required: true,
+    is_searchable: true,
+    show_in_list: true,
+    show_in_report: true,
+    show_in_print: true,
+    is_active: true
+  },
+  {
+    id: 'f1000000-0000-4000-8000-000000000006',
+    template_id: MALARIA_TEMPLATE_ID,
+    field_key: 'sample_collection_date',
+    field_label: 'नमुना संकलन दिनांक (Collection Date)',
+    field_type: 'date',
+    field_order: 6,
+    is_required: true,
+    is_searchable: false,
+    show_in_list: true,
+    show_in_report: true,
+    show_in_print: true,
+    is_active: true
+  },
+  {
+    id: 'f1000000-0000-4000-8000-000000000007',
+    template_id: MALARIA_TEMPLATE_ID,
+    field_key: 'result_outcome',
+    field_label: 'तपासणी निकाल / निष्कर्ष (Result / Outcome)',
+    field_type: 'result',
+    field_order: 7,
+    is_required: false,
+    is_searchable: true,
+    show_in_list: true,
+    show_in_report: true,
+    show_in_print: true,
+    default_value: 'Pending',
+    options_json: [
+      { label: 'Pending (प्रलंबित)', value: 'Pending' },
+      { label: 'Negative (निगेटिव्ह)', value: 'Negative' },
+      { label: 'Positive (Pf) (पॉझिटिव्ह Pf)', value: 'Positive (Pf)' },
+      { label: 'Positive (Pv) (पॉझिटिव्ह Pv)', value: 'Positive (Pv)' },
+      { label: 'Positive (Mixed) (मिश्र पॉझिटिव्ह)', value: 'Positive (Mixed)' },
+      { label: 'Equivocal (अस्पष्ट)', value: 'Equivocal' }
+    ],
+    is_active: true
+  }
+];
+
+export const DEFAULT_TB_FIELDS: RecordTemplateField[] = [
+  {
+    id: 'f2000000-0000-4000-8000-000000000001',
+    template_id: TB_TEMPLATE_ID,
+    field_key: 'patient_name',
+    field_label: 'संशयित रुग्णाचे नाव (Patient Name)',
+    field_type: 'text',
+    field_order: 1,
+    is_required: true,
+    is_searchable: true,
+    show_in_list: true,
+    show_in_report: true,
+    show_in_print: true,
+    is_active: true
+  },
+  {
+    id: 'f2000000-0000-4000-8000-000000000002',
+    template_id: TB_TEMPLATE_ID,
+    field_key: 'age',
+    field_label: 'वय (Age)',
+    field_type: 'number',
+    field_order: 2,
+    is_required: true,
+    is_searchable: false,
+    show_in_list: true,
+    show_in_report: true,
+    show_in_print: true,
+    is_active: true
+  },
+  {
+    id: 'f2000000-0000-4000-8000-000000000003',
+    template_id: TB_TEMPLATE_ID,
+    field_key: 'gender',
+    field_label: 'लिंग (Gender)',
+    field_type: 'dropdown',
+    field_order: 3,
+    is_required: true,
+    is_searchable: false,
+    show_in_list: true,
+    show_in_report: true,
+    show_in_print: true,
+    options_json: [
+      { label: 'पुरुष (Male)', value: 'पुरुष' },
+      { label: 'स्त्री (Female)', value: 'स्त्री' },
+      { label: 'इतर (Other)', value: 'इतर' }
+    ],
+    is_active: true
+  },
+  {
+    id: 'f2000000-0000-4000-8000-000000000004',
+    template_id: TB_TEMPLATE_ID,
+    field_key: 'nikshay_id',
+    field_label: 'निक्षय आयडी (Nikshay ID)',
+    field_type: 'text',
+    field_order: 4,
+    is_required: false,
+    is_searchable: true,
+    show_in_list: true,
+    show_in_report: true,
+    show_in_print: true,
+    is_active: true
+  },
+  {
+    id: 'f2000000-0000-4000-8000-000000000005',
+    template_id: TB_TEMPLATE_ID,
+    field_key: 'sample_type',
+    field_label: 'नमुना प्रकार (Sample Type)',
+    field_type: 'dropdown',
+    field_order: 5,
+    is_required: true,
+    is_searchable: false,
+    show_in_list: true,
+    show_in_report: true,
+    show_in_print: true,
+    options_json: [
+      { label: 'Sputum (थुंकी)', value: 'Sputum' },
+      { label: 'Xray (क्ष-किरण)', value: 'Xray' },
+      { label: 'LPA (एल.पी.ए.)', value: 'LPA' },
+      { label: 'Followup Sputum (फॉलोअप थुंकी)', value: 'Followup Sputum' },
+      { label: 'FoodBasket (पोषण आहार किट)', value: 'FoodBasket' }
+    ],
+    is_active: true
+  },
+  {
+    id: 'f2000000-0000-4000-8000-000000000006',
+    template_id: TB_TEMPLATE_ID,
+    field_key: 'sample_collection_date',
+    field_label: 'नमुना संकलन दिनांक (Collection Date)',
+    field_type: 'date',
+    field_order: 6,
+    is_required: true,
+    is_searchable: false,
+    show_in_list: true,
+    show_in_report: true,
+    show_in_print: true,
+    is_active: true
+  },
+  {
+    id: 'f2000000-0000-4000-8000-000000000007',
+    template_id: TB_TEMPLATE_ID,
+    field_key: 'result_outcome',
+    field_label: 'तपासणी निकाल / निष्कर्ष (Result / Outcome)',
+    field_type: 'result',
+    field_order: 7,
+    is_required: false,
+    is_searchable: true,
+    show_in_list: true,
+    show_in_report: true,
+    show_in_print: true,
+    default_value: 'Pending',
+    options_json: [
+      { label: 'Pending (प्रलंबित / Not Tested)', value: 'Pending' },
+      { label: 'Negative (निगेटिव्ह)', value: 'Negative' },
+      { label: 'Positive (1+) (पॉझिटिव्ह 1+)', value: 'Positive (1+)' },
+      { label: 'Positive (2+) (पॉझिटिव्ह 2+)', value: 'Positive (2+)' },
+      { label: 'Positive (3+) (पॉझिटिव्ह 3+)', value: 'Positive (3+)' },
+      { label: 'Scanty (अल्प जंतू)', value: 'Scanty' }
+    ],
+    is_active: true
+  }
+];
+
 class TemplateService {
   async getTemplates(): Promise<RecordRegisterTemplate[]> {
+    let list: RecordRegisterTemplate[] = [];
     if (isSupabaseConfigured() && supabase) {
       try {
         const { data, error } = await supabase.from('record_register_templates').select('*').order('display_order');
-        if (!error && data) {
-          storage.setItem(TEMPLATES_KEY, JSON.stringify(data));
-          return data as RecordRegisterTemplate[];
+        if (!error && data && data.length > 0) {
+          list = data as RecordRegisterTemplate[];
         }
-      } catch (e) { console.warn('Supabase templates error, using local'); }
-    }
-    let raw = storage.getItem(TEMPLATES_KEY);
-    if (!raw) {
-      if (isDemoMode()) {
-        storage.setItem(TEMPLATES_KEY, JSON.stringify(DEFAULT_TEMPLATES));
-        return DEFAULT_TEMPLATES;
+      } catch (e) {
+        console.warn('Supabase templates error, using local:', e);
       }
-      return [];
     }
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return isDemoMode() ? DEFAULT_TEMPLATES : [];
+
+    if (list.length === 0) {
+      const raw = storage.getItem(TEMPLATES_KEY);
+      if (raw) {
+        try {
+          list = JSON.parse(raw) as RecordRegisterTemplate[];
+        } catch {}
+      }
     }
+
+    // Always guarantee MALARIA and TB templates are present in the list
+    const malariaIndex = list.findIndex(
+      t => t.id === MALARIA_TEMPLATE_ID || t.register_code === 'MALARIA'
+    );
+    if (malariaIndex < 0) {
+      list.unshift(DEFAULT_TEMPLATES[0]);
+    } else {
+      // Ensure flags and descriptions are updated
+      list[malariaIndex] = {
+        ...DEFAULT_TEMPLATES[0],
+        ...list[malariaIndex],
+        requires_result: true,
+        usage_type: 'नमुना नोंदवही',
+      };
+    }
+
+    const tbIndex = list.findIndex(
+      t => t.id === TB_TEMPLATE_ID || t.register_code === 'TB'
+    );
+    if (tbIndex < 0) {
+      list.splice(1, 0, DEFAULT_TEMPLATES[1]);
+    } else {
+      list[tbIndex] = {
+        ...DEFAULT_TEMPLATES[1],
+        ...list[tbIndex],
+        requires_result: true,
+        usage_type: 'नमुना नोंदवही',
+      };
+    }
+
+    storage.setItem(TEMPLATES_KEY, JSON.stringify(list));
+    return list;
   }
 
   async getActiveTemplates(): Promise<RecordRegisterTemplate[]> {
@@ -116,6 +410,14 @@ class TemplateService {
 
   async deleteTemplate(templateId: string): Promise<{ success: boolean; message: string; archived: boolean }> {
     assertValidUUID(templateId, 'टेम्पलेट ID');
+    const normId = normalizeTemplateId(templateId);
+    if (normId === MALARIA_TEMPLATE_ID || normId === TB_TEMPLATE_ID) {
+      return {
+        success: false,
+        archived: false,
+        message: 'मलेरिया आणि क्षयरोग या राष्ट्रीय कार्यक्रमांच्या मूळ शासकीय नोंदवह्या आहेत, त्या डिलीट करता येणार नाहीत.'
+      };
+    }
     
     // Check if dynamic records exist for this template
     let recordCount = 0;
@@ -188,24 +490,138 @@ class TemplateService {
   }
 
   async getTemplateFields(templateId: string): Promise<RecordTemplateField[]> {
-    if (isSupabaseConfigured() && supabase && isValidUUID(templateId)) {
+    const normId = normalizeTemplateId(templateId);
+    let fields: RecordTemplateField[] = [];
+
+    if (isSupabaseConfigured() && supabase && isValidUUID(normId)) {
       try {
-        const { data, error } = await supabase.from('record_template_fields').select('*').eq('template_id', templateId).order('field_order');
-        if (!error && data) return data as RecordTemplateField[];
-      } catch (e) { console.warn('Supabase fields error, using local'); }
+        const { data, error } = await supabase.from('record_template_fields').select('*').eq('template_id', normId).order('field_order');
+        if (!error && data && data.length > 0) {
+          fields = data as RecordTemplateField[];
+        }
+      } catch (e) {
+        console.warn('Supabase fields error, using local:', e);
+      }
     }
+
+    if (fields.length === 0) {
+      const raw = storage.getItem(TEMPLATE_FIELDS_KEY);
+      if (raw) {
+        try {
+          const allFields = JSON.parse(raw) as RecordTemplateField[];
+          fields = allFields.filter(f => normalizeTemplateId(f.template_id) === normId).sort((a, b) => a.field_order - b.field_order);
+        } catch {}
+      }
+    }
+
+    // Default fields seeding for fixed Malaria Register
+    if (normId === MALARIA_TEMPLATE_ID) {
+      if (fields.length === 0) {
+        fields = [...DEFAULT_MALARIA_FIELDS];
+        this.saveDefaultFields(fields).catch(() => {});
+      } else {
+        // Guarantee Result/Outcome field exists
+        const hasResult = fields.some(f => f.field_type === 'result' || f.field_key === 'result_outcome' || f.field_key === 'result');
+        if (!hasResult) {
+          const defaultResultField = DEFAULT_MALARIA_FIELDS.find(f => f.field_type === 'result')!;
+          fields.push(defaultResultField);
+          this.saveTemplateField(defaultResultField).catch(() => {});
+        }
+      }
+    }
+
+    // Default fields seeding for fixed TB Register
+    if (normId === TB_TEMPLATE_ID) {
+      if (fields.length === 0) {
+        fields = [...DEFAULT_TB_FIELDS];
+        this.saveDefaultFields(fields).catch(() => {});
+      } else {
+        // Guarantee Result/Outcome field exists
+        const hasResult = fields.some(f => f.field_type === 'result' || f.field_key === 'result_outcome' || f.field_key === 'result');
+        if (!hasResult) {
+          const defaultResultField = DEFAULT_TB_FIELDS.find(f => f.field_type === 'result')!;
+          fields.push(defaultResultField);
+          this.saveTemplateField(defaultResultField).catch(() => {});
+        }
+      }
+    }
+
+    return fields;
+  }
+
+  private async saveDefaultFields(fieldsToSeed: RecordTemplateField[]): Promise<void> {
     const raw = storage.getItem(TEMPLATE_FIELDS_KEY);
-    if (!raw) return [];
-    const fields = JSON.parse(raw) as RecordTemplateField[];
-    return fields.filter(f => f.template_id === templateId).sort((a, b) => a.field_order - b.field_order);
+    let allFields = raw ? (JSON.parse(raw) as RecordTemplateField[]) : [];
+    for (const f of fieldsToSeed) {
+      const idx = allFields.findIndex(item => item.id === f.id);
+      if (idx >= 0) {
+        allFields[idx] = f;
+      } else {
+        allFields.push(f);
+      }
+    }
+    storage.setItem(TEMPLATE_FIELDS_KEY, JSON.stringify(allFields));
+
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        const payload = fieldsToSeed.map(cleanField => ({
+          id: cleanField.id,
+          template_id: cleanField.template_id,
+          field_key: cleanField.field_key,
+          field_label: cleanField.field_label,
+          field_type: cleanField.field_type,
+          field_order: cleanField.field_order ?? 0,
+          is_required: cleanField.is_required ?? false,
+          is_searchable: cleanField.is_searchable ?? false,
+          show_in_list: cleanField.show_in_list ?? true,
+          show_in_report: cleanField.show_in_report ?? true,
+          show_in_print: cleanField.show_in_print ?? true,
+          default_value: cleanField.default_value || null,
+          placeholder: cleanField.placeholder || null,
+          help_text: cleanField.help_text || null,
+          options_json: cleanField.options_json || [],
+          validation_json: cleanField.validation_json || {},
+          automation_json: cleanField.automation_json || {},
+          conditional_json: cleanField.conditional_json || {},
+          is_active: cleanField.is_active ?? true,
+          updated_at: new Date().toISOString(),
+        }));
+        await supabase.from('record_template_fields').upsert(payload);
+      } catch (err) {
+        console.warn('Seeding default fields to Supabase warning:', err);
+      }
+    }
+  }
+
+  async updateResultOptions(templateId: string, options: { label: string; value: string }[]): Promise<void> {
+    const normId = normalizeTemplateId(templateId);
+    const fields = await this.getTemplateFields(normId);
+    const resField = fields.find(f => f.field_type === 'result' || f.field_key === 'result_outcome' || f.field_key === 'result');
+    if (resField) {
+      await this.saveTemplateField({
+        ...resField,
+        options_json: options
+      });
+    } else {
+      const defaultField = normId === MALARIA_TEMPLATE_ID 
+        ? DEFAULT_MALARIA_FIELDS.find(f => f.field_type === 'result')!
+        : DEFAULT_TB_FIELDS.find(f => f.field_type === 'result')!;
+      await this.saveTemplateField({
+        ...defaultField,
+        template_id: normId,
+        options_json: options
+      });
+    }
   }
 
   async saveTemplateField(field: RecordTemplateField): Promise<void> {
-    assertValidUUID(field.template_id, 'टेम्पलेट ID');
+    const normTemplateId = normalizeTemplateId(field.template_id);
+    assertValidUUID(normTemplateId, 'टेम्पलेट ID');
     const validId = isValidUUID(field.id) ? field.id : crypto.randomUUID();
     const cleanField: RecordTemplateField = {
       ...field,
       id: validId,
+      template_id: normTemplateId,
       updated_at: new Date().toISOString()
     };
 
@@ -257,6 +673,26 @@ class TemplateService {
   
   async deleteTemplateField(fieldId: string): Promise<void> {
     assertValidUUID(fieldId, 'फील्ड ID');
+    
+    // Check if protected field of fixed registers
+    const raw = storage.getItem(TEMPLATE_FIELDS_KEY);
+    if (raw) {
+      try {
+        const fields = JSON.parse(raw) as RecordTemplateField[];
+        const target = fields.find(f => f.id === fieldId);
+        if (target) {
+          const normTemplateId = normalizeTemplateId(target.template_id);
+          if (normTemplateId === MALARIA_TEMPLATE_ID || normTemplateId === TB_TEMPLATE_ID) {
+            if (target.field_type === 'result' || target.field_key === 'result_outcome' || target.is_required) {
+              throw new Error('हे फील्ड राष्ट्रीय नोंदवहीचा अनिवार्य भाग आहे, ते हटवता येणार नाही. आपण त्याचे पर्याय (Options) संपादित करू शकता.');
+            }
+          }
+        }
+      } catch (err: any) {
+        if (err.message && err.message.includes('अनिवार्य')) throw err;
+      }
+    }
+
     if (isSupabaseConfigured() && supabase) {
       const { error } = await supabase.from('record_template_fields').delete().eq('id', fieldId);
       if (error) {
@@ -269,8 +705,8 @@ class TemplateService {
       throw new Error('Supabase कॉन्फिगर केलेले नाही.');
     }
 
-    let raw = storage.getItem(TEMPLATE_FIELDS_KEY);
-    let fields = raw ? JSON.parse(raw) as RecordTemplateField[] : [];
+    let rawFields = storage.getItem(TEMPLATE_FIELDS_KEY);
+    let fields = rawFields ? JSON.parse(rawFields) as RecordTemplateField[] : [];
     fields = fields.filter(f => f.id !== fieldId);
     storage.setItem(TEMPLATE_FIELDS_KEY, JSON.stringify(fields));
   }

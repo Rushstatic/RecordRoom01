@@ -239,9 +239,9 @@ export const malariaService = {
             sample_year,
             malaria_smear_code,
             sent_date,
-            test_result,
-            tested_on,
-            tested_by,
+            result,
+            result_updated_at,
+            result_updated_by,
             client_record_id,
             created_at,
             updated_at,
@@ -320,9 +320,9 @@ export const malariaService = {
               sample_year: Number(item.sample_year),
               malaria_smear_code: item.malaria_smear_code || employee?.malaria_smear_code || '',
               sent_date: item.sent_date || null,
-              test_result: item.test_result || null,
-              tested_on: item.tested_on || null,
-              tested_by: item.tested_by || null,
+              result: item.result || null,
+              result_updated_at: item.result_updated_at || null,
+              result_updated_by: item.result_updated_by || null,
               client_record_id: item.client_record_id || null,
               created_at: item.created_at,
               updated_at: item.updated_at,
@@ -556,7 +556,7 @@ export const malariaService = {
       sample_year: sampleYear,
       sample_number: assignedSampleNumber,
       sent_date: null, // New sample MUST remain NULL
-      test_result: 'Pending',
+      result: 'Pending',
       created_at: nowIso,
       updated_at: nowIso,
     };
@@ -578,7 +578,7 @@ export const malariaService = {
             sample_number: assignedSampleNumber,
             sample_year: sampleYear,
             malaria_smear_code: sampleData.malaria_smear_code,
-            test_result: 'Pending',
+            result: 'Pending',
           })
           .select(`
             *,
@@ -605,7 +605,7 @@ export const malariaService = {
                 sample_number: nextNum,
                 sample_year: sampleYear,
                 malaria_smear_code: sampleData.malaria_smear_code,
-                test_result: 'Pending',
+                result: 'Pending',
               })
               .select()
               .single();
@@ -677,9 +677,9 @@ export const malariaService = {
           payload.sample_collection_date = updates.sample_collection_date;
           payload.sample_year = new Date(updates.sample_collection_date).getFullYear();
         }
-        if (updates.test_result !== undefined) payload.test_result = updates.test_result;
-        if (updates.tested_on !== undefined) payload.tested_on = updates.tested_on;
-        if (updates.tested_by !== undefined) payload.tested_by = updates.tested_by;
+        if (updates.result !== undefined) payload.result = updates.result;
+        if (updates.result_updated_at !== undefined) payload.result_updated_at = updates.result_updated_at;
+        if (updates.result_updated_by !== undefined) payload.result_updated_by = updates.result_updated_by;
 
         const { error } = await supabase.from('malaria_blood_samples').update(payload).eq('id', id);
         if (error) {
@@ -731,9 +731,9 @@ export const malariaService = {
         const { error } = await supabase
           .from('malaria_blood_samples')
           .update({
-            test_result: result,
-            tested_on: testedOn,
-            tested_by: employeeId,
+            result: result,
+            result_updated_at: testedOn,
+            result_updated_by: employeeId,
             updated_at: nowIso,
           })
           .in('id', sampleIds);
@@ -760,9 +760,9 @@ export const malariaService = {
       if (sampleIds.includes(item.id)) {
         return {
           ...item,
-          test_result: result,
-          tested_on: testedOn,
-          tested_by: employeeId,
+          result: result,
+          result_updated_at: testedOn,
+          result_updated_by: employeeId,
           updated_at: nowIso,
         };
       }

@@ -44,6 +44,8 @@ const PHC_ONLY_PAGES: PageId[] = [
   'backup-audit',
   'data-migration',
   'sql-query',
+  'malaria-targets',
+  'admin-dashboard',
 ];
 
 const AppContent: React.FC = () => {

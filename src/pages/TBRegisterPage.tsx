@@ -13,8 +13,9 @@ interface TBRegisterPageProps {
 }
 
 export const TBRegisterPage: React.FC<TBRegisterPageProps> = ({ onNavigate }) => {
-  const { user, role } = useAuth();
-  
+  const { user, role, userContext } = useAuth();
+  const isPhcController = role === 'phc_controller';
+
   // Master data
   const [phcs, setPhcs] = useState<any[]>([]);
   const [subcentres, setSubcentres] = useState<any[]>([]);
@@ -216,8 +217,17 @@ export const TBRegisterPage: React.FC<TBRegisterPageProps> = ({ onNavigate }) =>
     }
   };
 
-  const filteredSubcentres = subcentres.filter(s => s.phc_id === selectedPhc);
-  const filteredVillages = villages.filter(v => v.subcentre_id === selectedSubcentre);
+  const filteredSubcentres = isPhcController 
+    ? subcentres.filter(s => s.phc_id === selectedPhc)
+    : (userContext?.applicableSubcentreIds && userContext.applicableSubcentreIds.length > 0
+        ? subcentres.filter(s => userContext.applicableSubcentreIds.includes(s.id))
+        : subcentres.filter(s => s.phc_id === selectedPhc));
+
+  const filteredVillages = isPhcController 
+    ? villages.filter(v => v.subcentre_id === selectedSubcentre)
+    : (userContext?.applicableSubcentreIds && userContext.applicableSubcentreIds.length > 0
+        ? villages.filter(v => userContext.applicableSubcentreIds.includes(v.subcentre_id))
+        : villages.filter(v => v.subcentre_id === selectedSubcentre));
   
   // Find employees belonging to the selected subcentre (this is simplistic, assuming direct match or via village)
   // Actually, employees are assigned to PHC and villages. Let's just filter by selected PHC for simplicity or show all active

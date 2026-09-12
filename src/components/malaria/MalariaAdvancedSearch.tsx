@@ -10,7 +10,8 @@ import {
   Send,
   Printer,
   ChevronDown,
-  AlertTriangle
+  AlertTriangle,
+  CheckCircle2
 } from 'lucide-react';
 import { malariaService, formatSampleNumber } from '../../services/malariaService';
 import { MalariaBloodSample, PageId, PhcMaster, SubcentreMaster, VillageMaster, EmployeeMaster } from '../../types';
@@ -23,6 +24,7 @@ interface Props {
   subcentres: SubcentreMaster[];
   villages: VillageMaster[];
   employees: EmployeeMaster[];
+  resultOptions?: { label: string; value: string }[];
   onEdit: (s: MalariaBloodSample) => void;
   onDelete: (s: MalariaBloodSample) => void;
   onNavigate: (page: PageId) => void;
@@ -37,12 +39,27 @@ export const MalariaAdvancedSearch: React.FC<Props> = ({
   subcentres,
   villages,
   employees,
+  resultOptions = [
+    { label: 'Pending (प्रलंबित)', value: 'Pending' },
+    { label: 'Negative (निगेटिव्ह)', value: 'Negative' },
+    { label: 'Positive (Pf) (पॉझिटिव्ह Pf)', value: 'Positive (Pf)' },
+    { label: 'Positive (Pv) (पॉझिटिव्ह Pv)', value: 'Positive (Pv)' },
+    { label: 'Positive (Mixed) (मिश्र पॉझिटिव्ह)', value: 'Positive (Mixed)' },
+    { label: 'Equivocal (अस्पष्ट)', value: 'Equivocal' },
+  ],
   onEdit,
   onDelete,
   onNavigate,
   refreshTrigger
 }) => {
   const [loading, setLoading] = useState(false);
+
+  // Result update within Record Details
+  const [isUpdatingResult, setIsUpdatingResult] = useState(false);
+  const [quickResult, setQuickResult] = useState('');
+  const [quickTestedOn, setQuickTestedOn] = useState(new Date().toISOString().split('T')[0]);
+  const [savingResult, setSavingResult] = useState(false);
+  const [resultSuccessMsg, setResultSuccessMsg] = useState<string | null>(null);
   const [data, setData] = useState<MalariaBloodSample[]>([]);
   const [totalCount, setTotalCount] = useState(0);
 
@@ -159,6 +176,38 @@ export const MalariaAdvancedSearch: React.FC<Props> = ({
     setOffset(0);
     setSortBy('created_at');
     setSortOrder('desc');
+  };
+
+  const handleOpenRecord = (item: MalariaBloodSample) => {
+    setSelectedRecord(item);
+    setQuickResult(item.result || '');
+    setQuickTestedOn(item.result_updated_at || new Date().toISOString().split('T')[0]);
+    setIsUpdatingResult(false);
+    setResultSuccessMsg(null);
+  };
+
+  const handleSaveRecordResult = async () => {
+    if (!selectedRecord) return;
+    setSavingResult(true);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const updates = {
+        result: quickResult || null,
+        result_updated_at: quickResult ? (quickTestedOn || today) : null,
+        result_updated_by: quickResult ? (selectedEmployeeId || 'ADMIN') : null,
+      };
+      await malariaService.updateSample(selectedRecord.id, updates);
+      const updated = { ...selectedRecord, ...updates };
+      setSelectedRecord(updated);
+      setIsUpdatingResult(false);
+      setResultSuccessMsg('रक्त नमुना निकाल यशस्वीरीत्या जतन केला.');
+      setTimeout(() => setResultSuccessMsg(null), 3000);
+      applyFilters();
+    } catch (err: any) {
+      alert(err.message || 'अहवाल जतन करताना त्रुटी आली.');
+    } finally {
+      setSavingResult(false);
+    }
   };
 
   const handlePrint = (sample: MalariaBloodSample) => {
@@ -398,20 +447,20 @@ export const MalariaAdvancedSearch: React.FC<Props> = ({
                         )}
                       </td>
                       <td className="px-3 py-2 text-center">
-                        {item.test_result ? (
+                        {item.result ? (
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            item.test_result.startsWith('Positive') ? 'bg-rose-100 text-rose-800' :
-                            item.test_result === 'Negative' ? 'bg-emerald-100 text-emerald-800' :
+                            item.result.startsWith('Positive') ? 'bg-rose-100 text-rose-800' :
+                            item.result === 'Negative' ? 'bg-emerald-100 text-emerald-800' :
                             'bg-slate-100 text-slate-800'
                           }`}>
-                            {item.test_result}
+                            {item.result}
                           </span>
                         ) : (
                           <span className="text-[10px] text-slate-400 italic">Pending</span>
                         )}
                       </td>
                       <td className="px-3 py-2 text-center flex items-center justify-center gap-1.5">
-                        <button onClick={() => setSelectedRecord(item)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="View">
+                        <button onClick={() => handleOpenRecord(item)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="View">
                           <FileSpreadsheet className="w-4 h-4" />
                         </button>
                         {(isPhcController || item.employee_id === selectedEmployeeId) && (
@@ -458,18 +507,18 @@ export const MalariaAdvancedSearch: React.FC<Props> = ({
                          <span className="text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">Pending</span>
                        )}
                     </span>
-                    {item.test_result && (
+                    {item.result && (
                       <span className={`font-bold px-1.5 py-0.5 rounded border ${
-                        item.test_result.startsWith('Positive') ? 'bg-rose-50 border-rose-200 text-rose-700' :
-                        item.test_result === 'Negative' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
+                        item.result.startsWith('Positive') ? 'bg-rose-50 border-rose-200 text-rose-700' :
+                        item.result === 'Negative' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
                         'bg-slate-50 border-slate-200 text-slate-700'
                       }`}>
-                        {item.test_result}
+                        {item.result}
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100">
-                    <button onClick={() => setSelectedRecord(item)} className="flex-1 py-1.5 text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded text-center">
+                    <button onClick={() => handleOpenRecord(item)} className="flex-1 py-1.5 text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded text-center cursor-pointer">
                       View
                     </button>
                     {(isPhcController || item.employee_id === selectedEmployeeId) && (
@@ -576,27 +625,111 @@ export const MalariaAdvancedSearch: React.FC<Props> = ({
                    </div>
                  </div>
 
-                 <div className="grid grid-cols-2 gap-4 border-b border-slate-100 pb-4">
-                   <div className={`p-3 rounded-xl border ${
-                     selectedRecord.test_result?.startsWith('Positive') ? 'bg-rose-50 border-rose-200' :
-                     selectedRecord.test_result === 'Negative' ? 'bg-emerald-50 border-emerald-200' :
-                     'bg-slate-50 border-slate-200'
-                   }`}>
-                     <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5 text-slate-500">रक्त नमुना अहवाल</div>
-                     <div className={`text-sm font-black flex items-center gap-1.5 ${
-                       selectedRecord.test_result?.startsWith('Positive') ? 'text-rose-700' :
-                       selectedRecord.test_result === 'Negative' ? 'text-emerald-700' :
-                       'text-slate-700'
-                     }`}>
-                       {selectedRecord.test_result || 'Pending'}
-                     </div>
+                 {/* Result Section */}
+                 <div className="border-b border-slate-100 pb-4">
+                   <div className="flex items-center justify-between mb-2">
+                     <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">रक्त नमुना अहवाल (Result)</div>
+                     {isPhcController && !isUpdatingResult && (
+                       <button
+                         type="button"
+                         onClick={() => {
+                           setQuickResult(selectedRecord.result || '');
+                           setQuickTestedOn(selectedRecord.result_updated_at || new Date().toISOString().split('T')[0]);
+                           setIsUpdatingResult(true);
+                         }}
+                         className="text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                       >
+                         <Edit2 className="w-3.5 h-3.5" />
+                         {selectedRecord.result ? 'निकाल बदला' : 'निकाल नोंदवा'}
+                       </button>
+                     )}
                    </div>
-                   {selectedRecord.test_result && selectedRecord.tested_on && (
-                     <div className="p-3 rounded-xl border bg-slate-50 border-slate-200">
-                       <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5 text-slate-500">तपासणी दिनांक</div>
-                       <div className="text-sm font-black flex items-center gap-1.5 text-slate-700">
-                         <Calendar className="w-4 h-4 text-emerald-600" />
-                         {formatDate(selectedRecord.tested_on)}
+
+                   {resultSuccessMsg && (
+                     <div className="mb-2 p-2 bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-bold rounded-lg flex items-center gap-1.5">
+                       <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                       {resultSuccessMsg}
+                     </div>
+                   )}
+
+                   {!isUpdatingResult ? (
+                     <div className="grid grid-cols-2 gap-4">
+                       <div className={`p-3 rounded-xl border ${
+                         selectedRecord.result?.startsWith('Positive') ? 'bg-rose-50 border-rose-200' :
+                         selectedRecord.result === 'Negative' ? 'bg-emerald-50 border-emerald-200' :
+                         'bg-slate-50 border-slate-200'
+                       }`}>
+                         <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5 text-slate-500">तपासणी निष्कर्ष</div>
+                         <div className={`text-sm font-black flex items-center gap-1.5 ${
+                           selectedRecord.result?.startsWith('Positive') ? 'text-rose-700' :
+                           selectedRecord.result === 'Negative' ? 'text-emerald-700' :
+                           'text-slate-700'
+                         }`}>
+                           {selectedRecord.result || 'Pending (प्रलंबित)'}
+                         </div>
+                         {!isPhcController && (
+                           <span className="text-[10px] text-slate-400 block mt-0.5">केवळ वाचनासाठी (Read Only)</span>
+                         )}
+                       </div>
+                       {selectedRecord.result && selectedRecord.result_updated_at && (
+                         <div className="p-3 rounded-xl border bg-slate-50 border-slate-200">
+                           <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5 text-slate-500">तपासणी दिनांक</div>
+                           <div className="text-sm font-black flex items-center gap-1.5 text-slate-700">
+                             <Calendar className="w-4 h-4 text-emerald-600" />
+                             {formatDate(selectedRecord.result_updated_at)}
+                           </div>
+                         </div>
+                       )}
+                     </div>
+                   ) : (
+                     <div className="p-3.5 bg-emerald-50/70 rounded-xl border border-emerald-200 space-y-3">
+                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                         <div>
+                           <label className="block text-xs font-bold text-slate-700 mb-1">
+                             निकाल निवडा (Select Result)
+                           </label>
+                           <select
+                             value={quickResult}
+                             onChange={(e) => setQuickResult(e.target.value)}
+                             className="w-full py-1.5 px-2.5 border border-slate-300 rounded-lg bg-white text-xs font-semibold focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                           >
+                             <option value="">-- निवडा / प्रलंबित (Pending) --</option>
+                             {resultOptions.map((opt, i) => (
+                               <option key={i} value={opt.value}>{opt.label}</option>
+                             ))}
+                           </select>
+                         </div>
+                         {quickResult && (
+                           <div>
+                             <label className="block text-xs font-bold text-slate-700 mb-1">
+                               तपासणी दिनांक (Tested On)
+                             </label>
+                             <input
+                               type="date"
+                               max={new Date().toISOString().split('T')[0]}
+                               value={quickTestedOn}
+                               onChange={(e) => setQuickTestedOn(e.target.value)}
+                               className="w-full py-1.5 px-2.5 border border-slate-300 rounded-lg bg-white text-xs font-semibold focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+                             />
+                           </div>
+                         )}
+                       </div>
+                       <div className="flex items-center justify-end gap-2 pt-1">
+                         <button
+                           type="button"
+                           onClick={() => setIsUpdatingResult(false)}
+                           className="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 cursor-pointer"
+                         >
+                           रद्द करा
+                         </button>
+                         <button
+                           type="button"
+                           onClick={handleSaveRecordResult}
+                           disabled={savingResult}
+                           className="px-3.5 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                         >
+                           {savingResult ? 'जतन करत आहे...' : 'निकाल सेव्ह करा'}
+                         </button>
                        </div>
                      </div>
                    )}

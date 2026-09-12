@@ -315,9 +315,9 @@ export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNaviga
     
     if (selectedResultFilter && selectedResultFilter !== 'all') {
       if (selectedResultFilter === 'Pending') {
-        result = result.filter(r => !r.test_result || r.test_result === 'Pending');
+        result = result.filter(r => !r.result || r.result === 'Pending');
       } else {
-        result = result.filter(r => r.test_result === selectedResultFilter);
+        result = result.filter(r => r.result === selectedResultFilter);
       }
     }
 
@@ -339,9 +339,9 @@ export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNaviga
     if (!resultRecord) return;
     try {
       await malariaService.updateSample(resultRecord.id, {
-        test_result: resultUpdates,
-        tested_on: new Date().toISOString().split('T')[0],
-        tested_by: user?.employeeId || null,
+        result: resultUpdates,
+        result_updated_at: new Date().toISOString().split('T')[0],
+        result_updated_by: user?.employeeId || null,
       });
       setResultRecord(null);
       loadData();
@@ -1310,7 +1310,7 @@ export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNaviga
                   opts = typeof f.options_json === 'string' ? JSON.parse(f.options_json) : (f.options_json || []);
                 } catch(e) {}
                 
-                const pendingCount = dateRangeFilteredSamples.filter(s => !s.test_result || s.test_result === 'Pending').length;
+                const pendingCount = dateRangeFilteredSamples.filter(s => !s.result || s.result === 'Pending').length;
                 
                 return (
                   <div key={`summary-${f.id}`} className="flex flex-wrap items-center gap-2 text-xs font-medium">
@@ -1319,7 +1319,7 @@ export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNaviga
                       Pending: {pendingCount}
                     </span>
                     {opts.map((opt: any, idx: number) => {
-                      const count = dateRangeFilteredSamples.filter(s => s.test_result === (opt.value || opt.label)).length;
+                      const count = dateRangeFilteredSamples.filter(s => s.result === (opt.value || opt.label)).length;
                       if (count === 0) return null;
                       return (
                         <span key={idx} className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded shadow-sm border border-emerald-200">
@@ -1441,14 +1441,14 @@ export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNaviga
                         {resultFields.length > 0 && (
                           <td className="px-3 py-2.5 text-center">
                             <div className="flex items-center justify-center gap-2">
-                              <span className={`px-2 py-1 rounded text-xs font-semibold ${!s.test_result || s.test_result === 'Pending' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                                {!s.test_result || s.test_result === 'Pending' ? 'Pending' : s.test_result}
+                              <span className={`px-2 py-1 rounded text-xs font-semibold ${!s.result || s.result === 'Pending' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                {!s.result || s.result === 'Pending' ? 'Pending' : s.result}
                               </span>
                               {(role === 'phc_controller' || user?.role === 'phc_controller') && (
                                 <button
                                   onClick={() => {
                                     setResultRecord(s);
-                                    setResultUpdates(s.test_result || 'Pending');
+                                    setResultUpdates(s.result || 'Pending');
                                   }}
                                   className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"
                                   title="निकाल अद्यतनित करा"

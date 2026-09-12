@@ -32,11 +32,11 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onNaviga
       setIsLoading(true);
       try {
         const malariaSamples = await malariaService.getSamples();
-        const malariaPending = malariaSamples.filter(s => !s.test_result || s.test_result === 'Pending').length;
+        const malariaPending = malariaSamples.filter(s => !s.result || s.result === 'Pending').length;
         const malariaCompleted = malariaSamples.length - malariaPending;
 
         const tbSamples = await tbService.getSamples();
-        const tbPending = tbSamples.filter(s => !s.test_result || s.test_result === 'Pending').length;
+        const tbPending = tbSamples.filter(s => !s.result || s.result === 'Pending').length;
         const tbCompleted = tbSamples.length - tbPending;
 
         let dynamicPending = 0;

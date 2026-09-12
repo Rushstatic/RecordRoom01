@@ -40,6 +40,7 @@ import {
   formatSampleNumber,
   formatIndianDate,
 } from '../services/malariaService';
+import { templateService } from '../services/templateService';
 import { MalariaAdvancedSearch } from '../components/malaria/MalariaAdvancedSearch';
 
 interface MalariaRegisterPageProps {
@@ -47,7 +48,7 @@ interface MalariaRegisterPageProps {
 }
 
 export const MalariaRegisterPage: React.FC<MalariaRegisterPageProps> = ({ onNavigate }) => {
-  const { user, role } = useAuth();
+  const { user, role, userContext } = useAuth();
   const { isOnline } = useNetworkStatus();
   const isPhcController = role === 'phc_controller';
 
@@ -115,17 +116,43 @@ export const MalariaRegisterPage: React.FC<MalariaRegisterPageProps> = ({ onNavi
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
+  // Dynamic Result Options from Template Config
+  const [resultOptions, setResultOptions] = useState<{label: string; value: string}[]>([
+    { label: 'Pending (प्रलंबित)', value: 'Pending' },
+    { label: 'Negative (निगेटिव्ह)', value: 'Negative' },
+    { label: 'Positive (Pf) (पॉझिटिव्ह Pf)', value: 'Positive (Pf)' },
+    { label: 'Positive (Pv) (पॉझिटिव्ह Pv)', value: 'Positive (Pv)' },
+    { label: 'Positive (Mixed) (मिश्र पॉझिटिव्ह)', value: 'Positive (Mixed)' },
+    { label: 'Equivocal (अवैध/अस्पष्ट)', value: 'Equivocal' },
+  ]);
+
   // 1. Initial Data Load
   const loadAllData = useCallback(async () => {
     setLoading(true);
     try {
-      const [phcList, scList, vilList, empList, sampleList] = await Promise.all([
+      const [phcList, scList, vilList, empList, sampleList, templateFields] = await Promise.all([
         masterDataService.getPhcs(),
         masterDataService.getSubcentres(),
         masterDataService.getVillages(),
         masterDataService.getEmployees(),
         malariaService.getSamples(),
+        templateService.getTemplateFields('b1000000-0000-4000-8000-000000000001'),
       ]);
+
+      const rField = templateFields.find(f => f.field_type === 'result');
+      if (rField) {
+        try {
+          const parsed = typeof rField.options_json === 'string' ? JSON.parse(rField.options_json) : (rField.options_json || []);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setResultOptions(parsed.map((p: any) => ({
+              label: p.label || p.value,
+              value: p.value || p.label
+            })));
+          }
+        } catch (e) {
+          console.error('Error parsing malaria result options:', e);
+        }
+      }
 
       setPhcs(phcList);
       setSubcentres(scList);
@@ -218,9 +245,18 @@ export const MalariaRegisterPage: React.FC<MalariaRegisterPageProps> = ({ onNavi
   }, [employees, selectedSubcentreId]);
 
   const availableVillages = useMemo(() => {
-    if (!selectedSubcentreId) return [];
-    return villages.filter((v) => v.subcentre_id === selectedSubcentreId);
-  }, [villages, selectedSubcentreId]);
+    if (isPhcController) {
+      if (!selectedSubcentreId) return [];
+      return villages.filter((v) => v.subcentre_id === selectedSubcentreId);
+    } else {
+      // For subcentre employee, allow all applicable villages (from extra charges)
+      if (userContext?.applicableSubcentreIds && userContext.applicableSubcentreIds.length > 0) {
+        return villages.filter((v) => userContext.applicableSubcentreIds.includes(v.subcentre_id));
+      }
+      if (!selectedSubcentreId) return [];
+      return villages.filter((v) => v.subcentre_id === selectedSubcentreId);
+    }
+  }, [villages, selectedSubcentreId, isPhcController, userContext]);
 
   // Handlers for PHC Controller dropdown changes
   const handlePhcChange = (phcId: string) => {
@@ -436,8 +472,8 @@ export const MalariaRegisterPage: React.FC<MalariaRegisterPageProps> = ({ onNavi
     setEditAge(String(sample.age));
     setEditGender(sample.gender);
     setEditCollectionDate(sample.sample_collection_date);
-    setEditTestResult(sample.test_result || '');
-    setEditTestedOn(sample.tested_on || '');
+    setEditTestResult(sample.result || '');
+    setEditTestedOn(sample.result_updated_at || '');
     setEditError(null);
   };
 
@@ -471,12 +507,12 @@ export const MalariaRegisterPage: React.FC<MalariaRegisterPageProps> = ({ onNavi
       };
 
       if (isPhcController) {
-        updatePayload.test_result = editTestResult || null;
-        updatePayload.tested_on = editTestedOn || null;
+        updatePayload.result = editTestResult || null;
+        updatePayload.result_updated_at = editTestedOn || null;
         if (editTestResult) {
-          updatePayload.tested_by = user?.employeeId || null;
+          updatePayload.result_updated_by = user?.employeeId || null;
         } else {
-          updatePayload.tested_by = null;
+          updatePayload.result_updated_by = null;
         }
       }
 
@@ -1062,6 +1098,7 @@ export const MalariaRegisterPage: React.FC<MalariaRegisterPageProps> = ({ onNavi
          subcentres={subcentres}
          villages={villages}
          employees={employees}
+         resultOptions={resultOptions}
          onEdit={handleOpenEdit}
          onDelete={handleDeleteSample}
          onNavigate={onNavigate || (() => {})}
@@ -1120,8 +1157,9 @@ export const MalariaRegisterPage: React.FC<MalariaRegisterPageProps> = ({ onNavi
                   type="text"
                   value={editPatientName}
                   onChange={(e) => setEditPatientName(e.target.value)}
-                  className="w-full py-2 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-none font-medium"
+                  className={`w-full py-2 px-3 border border-slate-300 rounded-lg font-medium ${isPhcController ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'focus:ring-2 focus:ring-emerald-600 focus:outline-none'}`}
                   required
+                  disabled={isPhcController}
                 />
               </div>
 
@@ -1133,7 +1171,8 @@ export const MalariaRegisterPage: React.FC<MalariaRegisterPageProps> = ({ onNavi
                     type="text"
                     value={editHouseNumber}
                     onChange={(e) => setEditHouseNumber(e.target.value)}
-                    className="w-full py-2 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-none font-medium"
+                    className={`w-full py-2 px-3 border border-slate-300 rounded-lg font-medium ${isPhcController ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'focus:ring-2 focus:ring-emerald-600 focus:outline-none'}`}
+                    disabled={isPhcController}
                   />
                 </div>
 
@@ -1143,7 +1182,8 @@ export const MalariaRegisterPage: React.FC<MalariaRegisterPageProps> = ({ onNavi
                   <select
                     value={editVillageId}
                     onChange={(e) => setEditVillageId(e.target.value)}
-                    className="w-full py-2 px-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-emerald-600 focus:outline-none font-medium"
+                    className={`w-full py-2 px-3 border border-slate-300 rounded-lg font-medium ${isPhcController ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white focus:ring-2 focus:ring-emerald-600 focus:outline-none'}`}
+                    disabled={isPhcController}
                   >
                     {villages.map((v) => (
                       <option key={v.id} value={v.id}>
@@ -1166,8 +1206,9 @@ export const MalariaRegisterPage: React.FC<MalariaRegisterPageProps> = ({ onNavi
                     max="120"
                     value={editAge}
                     onChange={(e) => setEditAge(e.target.value)}
-                    className="w-full py-2 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-none font-medium"
+                    className={`w-full py-2 px-3 border border-slate-300 rounded-lg font-medium ${isPhcController ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'focus:ring-2 focus:ring-emerald-600 focus:outline-none'}`}
                     required
+                    disabled={isPhcController}
                   />
                 </div>
 
@@ -1179,7 +1220,8 @@ export const MalariaRegisterPage: React.FC<MalariaRegisterPageProps> = ({ onNavi
                   <select
                     value={editGender}
                     onChange={(e) => setEditGender(e.target.value as GenderType)}
-                    className="w-full py-2 px-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-emerald-600 focus:outline-none font-medium"
+                    className={`w-full py-2 px-3 border border-slate-300 rounded-lg font-medium ${isPhcController ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white focus:ring-2 focus:ring-emerald-600 focus:outline-none'}`}
+                    disabled={isPhcController}
                   >
                     <option value="पुरुष">पुरुष</option>
                     <option value="स्त्री">स्त्री</option>
@@ -1197,13 +1239,14 @@ export const MalariaRegisterPage: React.FC<MalariaRegisterPageProps> = ({ onNavi
                     max={todayStr}
                     value={editCollectionDate}
                     onChange={(e) => setEditCollectionDate(e.target.value)}
-                    className="w-full py-2 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-none font-medium"
+                    className={`w-full py-2 px-3 border border-slate-300 rounded-lg font-medium ${isPhcController ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'focus:ring-2 focus:ring-emerald-600 focus:outline-none'}`}
                     required
+                    disabled={isPhcController}
                   />
                 </div>
               </div>
 
-              {isPhcController && (
+              {isPhcController ? (
                 <div className="mt-4 pt-3 border-t border-slate-200">
                   <h4 className="font-bold text-slate-800 mb-2">अहवाल (Test Result)</h4>
                   <div className="grid grid-cols-2 gap-3">
@@ -1221,12 +1264,10 @@ export const MalariaRegisterPage: React.FC<MalariaRegisterPageProps> = ({ onNavi
                         }}
                         className="w-full py-2 px-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-emerald-600 focus:outline-none font-medium text-xs"
                       >
-                        <option value="">-- प्रलंबित (Pending) --</option>
-                        <option value="Negative">Negative (निगेटिव्ह)</option>
-                        <option value="Positive (Pf)">Positive (Pf)</option>
-                        <option value="Positive (Pv)">Positive (Pv)</option>
-                        <option value="Positive (Mixed)">Positive (Mixed)</option>
-                        <option value="Equivocal">Equivocal/Invalid (अवैध)</option>
+                        <option value="">-- निवडा / प्रलंबित (Pending) --</option>
+                        {resultOptions.map((opt, i) => (
+                          <option key={i} value={opt.value}>{opt.label}</option>
+                        ))}
                       </select>
                     </div>
                     {editTestResult && (
@@ -1245,6 +1286,31 @@ export const MalariaRegisterPage: React.FC<MalariaRegisterPageProps> = ({ onNavi
                       </div>
                     )}
                   </div>
+                </div>
+              ) : (
+                <div className="mt-4 pt-3 border-t border-slate-200">
+                  <h4 className="font-bold text-slate-800 mb-2">अहवाल (Test Result)</h4>
+                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] text-slate-500 block">रक्त नमुना अहवाल (केवळ वाचनासाठी)</span>
+                      <span className={`inline-block mt-1 font-bold text-xs px-2.5 py-0.5 rounded-full ${
+                        editingSample.result?.startsWith('Positive') ? 'bg-rose-100 text-rose-800' :
+                        editingSample.result === 'Negative' ? 'bg-emerald-100 text-emerald-800' :
+                        'bg-amber-100 text-amber-800'
+                      }`}>
+                        {editingSample.result || 'Pending (प्रलंबित)'}
+                      </span>
+                    </div>
+                    {editingSample.result_updated_at && (
+                      <div className="text-right">
+                        <span className="text-[10px] text-slate-500 block">तपासणी दिनांक</span>
+                        <span className="text-xs font-semibold text-slate-700">{formatIndianDate(editingSample.result_updated_at)}</span>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    * कर्मचारी स्तरावरून निकाल बदलता येत नाही. निकाल नोंदणी केवळ PHC कंट्रोलर करू शकतात.
+                  </p>
                 </div>
               )}
 

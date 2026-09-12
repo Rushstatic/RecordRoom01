@@ -58,7 +58,7 @@ interface DailyWorkPageProps {
 }
 
 export const DailyWorkPage: React.FC<DailyWorkPageProps> = ({ onNavigate }) => {
-  const { user, role } = useAuth();
+  const { user, role, userContext } = useAuth();
   const { isOnline } = useNetworkStatus();
   const isPhcController = role === 'phc_controller' || user?.role === 'phc_controller';
 
@@ -232,13 +232,16 @@ export const DailyWorkPage: React.FC<DailyWorkPageProps> = ({ onNavigate }) => {
     return null;
   }, [phcs, currentSubcentre, user]);
 
-  // Assigned Villages for current Subcentre
+  // Assigned Villages for current Subcentre or extra charges
   const assignedVillages = useMemo(() => {
+    if (userContext?.applicableSubcentreIds && userContext.applicableSubcentreIds.length > 0) {
+      return villages.filter((v) => userContext.applicableSubcentreIds.includes(v.subcentre_id));
+    }
     if (currentSubcentre) {
       return villages.filter((v) => v.subcentre_id === currentSubcentre.id);
     }
     return villages;
-  }, [villages, currentSubcentre]);
+  }, [villages, currentSubcentre, userContext]);
 
   // Set Default values for Quick Entry Form based on Logged-in User
   useEffect(() => {

@@ -40,7 +40,7 @@ const PRESET_OPTIONS: Record<string, { label: string; options: { value: string; 
       { value: 'नाही', label: 'नाही (No)' },
     ]
   },
-  test_result: {
+  result: {
     label: 'तपासणी निष्कर्ष (Positive / Negative)',
     options: [
       { value: 'Negative', label: 'निगेटिव्ह (Negative / निरोगी)' },
@@ -253,8 +253,13 @@ export default function TemplateFieldsPage({
 
     // Process options
     let optionsJson: any = null;
-    if (['dropdown', 'radio'].includes(editingField.field_type || '')) {
-      const validOptions = customOptions.filter(o => o.value.trim() !== '');
+    if (['dropdown', 'radio', 'result'].includes(editingField.field_type || '')) {
+      const validOptions = customOptions
+        .filter(o => (o.label && o.label.trim() !== '') || (o.value && o.value.trim() !== ''))
+        .map(o => ({
+          label: (o.label && o.label.trim()) || o.value.trim(),
+          value: (o.value && o.value.trim()) || o.label.trim()
+        }));
       if (validOptions.length === 0) {
         setErrorMsg('कृपया किमान एक पर्याय जोडा.');
         return;

@@ -134,7 +134,7 @@ export default function TemplateBuilderPage({
 
     try {
       
-      const isNew = !editingTemplate.id;
+      const isRequiresResult = editingTemplate.requires_result || editingTemplate.register_code === 'MALARIA' || editingTemplate.register_code === 'TB' || editingTemplate.usage_type === 'नमुना नोंदवही';
       const templateId = editingTemplate.id || crypto.randomUUID();
       const newTemplate: RecordRegisterTemplate = {
         id: templateId,
@@ -145,7 +145,7 @@ export default function TemplateBuilderPage({
         icon: editingTemplate.icon || 'FileText',
         register_type: editingTemplate.register_type || 'Other',
         usage_type: editingTemplate.usage_type || 'सामान्य नोंदवही',
-        requires_result: editingTemplate.requires_result || false,
+        requires_result: isRequiresResult,
         is_active: editingTemplate.is_active ?? true,
         display_order: editingTemplate.display_order || templates.length + 1,
         created_by: user?.id,
@@ -153,33 +153,18 @@ export default function TemplateBuilderPage({
       
       await templateService.saveTemplate(newTemplate);
       
-      // If new, and requires result, auto-add a result field
-      if (isNew && newTemplate.usage_type === 'नमुना नोंदवही' && newTemplate.requires_result) {
-        await templateService.saveTemplateField({
-          id: crypto.randomUUID(),
-          template_id: templateId,
-          field_key: 'result_outcome',
-          field_label: 'तपासणी निकाल',
-          field_type: 'result',
-          field_order: 99,
-          is_required: true,
-          is_searchable: true,
-          show_in_list: true,
-          show_in_report: true,
-          show_in_print: true,
-          default_value: null,
-          placeholder: 'निकाल निवडा',
-          help_text: null,
-          options_json: resultOptions.filter(o => o.label.trim() !== ''),
-          is_active: true,
-          validation_json: null,
-          automation_json: null,
-          conditional_json: null
-        });
+      // Save Result/Outcome field options if configured
+      if (isRequiresResult) {
+        const validOpts = resultOptions
+          .filter(o => o.label.trim() !== '')
+          .map(o => ({ label: o.label.trim(), value: o.value.trim() || o.label.trim() }));
+        if (validOpts.length > 0) {
+          await templateService.updateResultOptions(templateId, validOpts);
+        }
       }
 
       setShowModal(false);
-      setSuccessMsg('नोंदवही यशस्वीरित्या जतन केली गेली.');
+      setSuccessMsg('नोंदवही व निकाल पर्याय यशस्वीरित्या जतन केले गेले.');
       setTimeout(() => setSuccessMsg(null), 3000);
       loadTemplates();
     } catch (err: any) {
@@ -191,15 +176,55 @@ export default function TemplateBuilderPage({
     setEditingTemplate({ 
       is_active: true, 
       display_order: templates.length + 1, 
-      icon: 'FileText' 
+      icon: 'FileText',
+      usage_type: 'सामान्य नोंदवही',
+      requires_result: false
     });
+    setResultOptions([
+      { label: 'Pending', value: 'Pending' },
+      { label: 'Negative', value: 'Negative' },
+      { label: 'Positive', value: 'Positive' }
+    ]);
     setErrorMsg(null);
     setShowModal(true);
   };
 
-  const openEditModal = (t: RecordRegisterTemplate) => {
+  const openEditModal = async (t: RecordRegisterTemplate) => {
     setEditingTemplate(t);
     setErrorMsg(null);
+    try {
+      const fields = await templateService.getTemplateFields(t.id);
+      const resField = fields.find(f => f.field_type === 'result' || f.field_key === 'result_outcome' || f.field_key === 'result');
+      if (resField && resField.options_json && Array.isArray(resField.options_json) && resField.options_json.length > 0) {
+        setResultOptions(resField.options_json);
+      } else if (t.register_code === 'MALARIA') {
+        setResultOptions([
+          { label: 'Pending (प्रलंबित)', value: 'Pending' },
+          { label: 'Negative (निगेटिव्ह)', value: 'Negative' },
+          { label: 'Positive (Pf) (पॉझिटिव्ह Pf)', value: 'Positive (Pf)' },
+          { label: 'Positive (Pv) (पॉझिटिव्ह Pv)', value: 'Positive (Pv)' },
+          { label: 'Positive (Mixed) (मिश्र पॉझिटिव्ह)', value: 'Positive (Mixed)' },
+          { label: 'Equivocal (अस्पष्ट)', value: 'Equivocal' },
+        ]);
+      } else if (t.register_code === 'TB') {
+        setResultOptions([
+          { label: 'Pending (प्रलंबित)', value: 'Pending' },
+          { label: 'Negative (निगेटिव्ह)', value: 'Negative' },
+          { label: 'Positive (1+) (पॉझिटिव्ह 1+)', value: 'Positive (1+)' },
+          { label: 'Positive (2+) (पॉझिटिव्ह 2+)', value: 'Positive (2+)' },
+          { label: 'Positive (3+) (पॉझिटिव्ह 3+)', value: 'Positive (3+)' },
+          { label: 'Scanty (अल्प जंतू)', value: 'Scanty' },
+        ]);
+      } else {
+        setResultOptions([
+          { label: 'Pending', value: 'Pending' },
+          { label: 'Negative', value: 'Negative' },
+          { label: 'Positive', value: 'Positive' }
+        ]);
+      }
+    } catch (e) {
+      console.warn('Could not fetch template fields for edit modal:', e);
+    }
     setShowModal(true);
   };
 
@@ -213,6 +238,11 @@ export default function TemplateBuilderPage({
   };
 
   const handleDelete = async (t: RecordRegisterTemplate) => {
+    if (t.register_code === 'MALARIA' || t.register_code === 'TB') {
+      setErrorMsg('मलेरिया आणि क्षयरोग या राष्ट्रीय कार्यक्रमांच्या मूळ शासकीय नोंदवह्या आहेत, त्या डिलीट करता येणार नाहीत.');
+      return;
+    }
+
     const stats = templateStats[t.id];
     const hasRecords = stats && stats.total > 0;
     const confirmPrompt = hasRecords
@@ -684,9 +714,15 @@ export default function TemplateBuilderPage({
                       {/* Open Register Entry */}
                       <button
                         onClick={() => {
-                          onSelectTemplate(t.id);
-                          storage.setItem('selectedTemplateId', t.id);
-                          onNavigate('dynamic-register');
+                          if (t.register_code === 'MALARIA') {
+                            onNavigate('malaria-register');
+                          } else if (t.register_code === 'TB') {
+                            onNavigate('tb-register');
+                          } else {
+                            onSelectTemplate(t.id);
+                            storage.setItem('selectedTemplateId', t.id);
+                            onNavigate('dynamic-register');
+                          }
                         }}
                         className="px-2.5 py-1 text-xs font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg transition-colors cursor-pointer"
                         title="नोंदवही उघडा व नवीन नोंद करा"
@@ -697,9 +733,15 @@ export default function TemplateBuilderPage({
                       {/* Open Report */}
                       <button
                         onClick={() => {
-                          onSelectTemplate(t.id);
-                          storage.setItem('selectedTemplateId', t.id);
-                          onNavigate('dynamic-report');
+                          if (t.register_code === 'MALARIA') {
+                            onNavigate('malaria-reports');
+                          } else if (t.register_code === 'TB') {
+                            onNavigate('tb-reports');
+                          } else {
+                            onSelectTemplate(t.id);
+                            storage.setItem('selectedTemplateId', t.id);
+                            onNavigate('dynamic-report');
+                          }
                         }}
                         className="px-2.5 py-1 text-xs font-bold bg-teal-50 text-teal-700 hover:bg-teal-100 rounded-lg transition-colors cursor-pointer"
                         title="नोंदवही अहवाल पहा"
@@ -866,6 +908,136 @@ export default function TemplateBuilderPage({
                   className="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-600 text-sm"
                   placeholder="या नोंदवहीचा उद्देश किंवा सूचना..."
                 />
+              </div>
+
+              {/* Result / Outcome Field Configuration */}
+              <div className="p-4 bg-indigo-50/50 rounded-xl border border-indigo-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editingTemplate.requires_result || editingTemplate.register_code === 'MALARIA' || editingTemplate.register_code === 'TB' || editingTemplate.usage_type === 'नमुना नोंदवही'}
+                      onChange={e => setEditingTemplate({...editingTemplate, requires_result: e.target.checked})}
+                      className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-600 border-slate-300"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-indigo-950 block">
+                        तपासणी निकाल / निष्कर्ष आवश्यक (Result / Outcome Configuration)
+                      </span>
+                      <span className="text-[11px] text-slate-500">
+                        {editingTemplate.register_code === 'MALARIA'
+                          ? 'मलेरिया नोंदवहीसाठी प्रयोगशाळा तपासणी निकाल (Result Options) संरचना'
+                          : editingTemplate.register_code === 'TB'
+                          ? 'क्षयरोग नोंदवहीसाठी थुंकी तपासणी निकाल (Result Options) संरचना'
+                          : 'प्रयोगशाळा/तपासणी निकालाचे पर्याय कॉन्फिगर करा'}
+                      </span>
+                    </div>
+                  </label>
+                </div>
+
+                {(editingTemplate.requires_result || editingTemplate.register_code === 'MALARIA' || editingTemplate.register_code === 'TB' || editingTemplate.usage_type === 'नमुना नोंदवही') && (
+                  <div className="pt-2 border-t border-indigo-100 space-y-3">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <span className="text-xs font-bold text-slate-800">
+                        निकालाचे उपलब्ध पर्याय (Result Options List):
+                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {editingTemplate.register_code === 'MALARIA' && (
+                          <button
+                            type="button"
+                            onClick={() => setResultOptions([
+                              { label: 'Pending (प्रलंबित)', value: 'Pending' },
+                              { label: 'Negative (निगेटिव्ह)', value: 'Negative' },
+                              { label: 'Positive (Pf) (पॉझिटिव्ह Pf)', value: 'Positive (Pf)' },
+                              { label: 'Positive (Pv) (पॉझिटिव्ह Pv)', value: 'Positive (Pv)' },
+                              { label: 'Positive (Mixed) (मिश्र पॉझिटिव्ह)', value: 'Positive (Mixed)' },
+                              { label: 'Equivocal (अस्पष्ट)', value: 'Equivocal' },
+                            ])}
+                            className="px-2 py-0.5 text-[10px] font-bold bg-indigo-100 text-indigo-800 rounded hover:bg-indigo-200 transition-colors cursor-pointer"
+                          >
+                            NVBDCP पर्याय भरा
+                          </button>
+                        )}
+                        {editingTemplate.register_code === 'TB' && (
+                          <button
+                            type="button"
+                            onClick={() => setResultOptions([
+                              { label: 'Pending (प्रलंबित)', value: 'Pending' },
+                              { label: 'Negative (निगेटिव्ह)', value: 'Negative' },
+                              { label: 'Positive (1+) (पॉझिटिव्ह 1+)', value: 'Positive (1+)' },
+                              { label: 'Positive (2+) (पॉझिटिव्ह 2+)', value: 'Positive (2+)' },
+                              { label: 'Positive (3+) (पॉझिटिव्ह 3+)', value: 'Positive (3+)' },
+                              { label: 'Scanty (अल्प जंतू)', value: 'Scanty' },
+                            ])}
+                            className="px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded hover:bg-amber-200 transition-colors cursor-pointer"
+                          >
+                            NTEP पर्याय भरा
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setResultOptions([
+                            { label: 'Pending (प्रलंबित)', value: 'Pending' },
+                            { label: 'Negative (निगेटिव्ह)', value: 'Negative' },
+                            { label: 'Positive (पॉझिटिव्ह)', value: 'Positive' },
+                          ])}
+                          className="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-700 rounded hover:bg-slate-200 transition-colors cursor-pointer"
+                        >
+                          साधे पर्याय
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                      {resultOptions.map((opt, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <span className="text-xs text-slate-400 font-mono w-5">{idx + 1}.</span>
+                          <input
+                            type="text"
+                            value={opt.label}
+                            onChange={e => updateResultOption(idx, e.target.value)}
+                            placeholder="उदा. Positive (Pf)"
+                            className="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:ring-1 focus:ring-indigo-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeResultOption(idx)}
+                            className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                            title="पर्याय हटवा"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                      <button
+                        type="button"
+                        onClick={addResultOption}
+                        className="text-xs font-bold text-indigo-700 hover:text-indigo-900 flex items-center gap-1 cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> + नवीन निकाल पर्याय जोडा (Add Option)
+                      </button>
+
+                      {editingTemplate.id && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowModal(false);
+                            onSelectTemplate(editingTemplate.id!);
+                            storage.setItem('selectedTemplateId', editingTemplate.id!);
+                            onNavigate('template-fields');
+                          }}
+                          className="text-xs font-bold text-slate-600 hover:text-indigo-600 flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <span>इतर सर्व फील्ड्स व्यवस्थापन</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">

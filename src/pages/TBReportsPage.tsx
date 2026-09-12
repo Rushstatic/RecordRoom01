@@ -7,6 +7,27 @@ import { Download, Printer, Search, Filter, Activity, FileSpreadsheet, FileText,
 import { exportElementToPDF } from '../utils/pdfExport';
 import { useAuth } from '../hooks/useAuth';
 
+const DEFAULT_TB_RESULT_OPTIONS = [
+  { label: 'Negative', value: 'Negative' },
+  { label: 'Positive', value: 'Positive' },
+  { label: 'Smear Positive', value: 'Smear Positive' },
+  { label: 'CBNAAT Positive', value: 'CBNAAT Positive' },
+  { label: 'Awaiting Result', value: 'Awaiting Result' },
+];
+
+const getTBResultBadgeStyle = (testResult?: string | null) => {
+  if (!testResult || testResult === 'Pending' || testResult.toLowerCase().includes('pending') || testResult.toLowerCase().includes('awaiting')) {
+    return 'bg-amber-50 text-amber-800 border-amber-300';
+  }
+  if (testResult.toLowerCase().includes('positive')) {
+    return 'bg-rose-50 text-rose-700 border-rose-300 font-bold';
+  }
+  if (testResult.toLowerCase().includes('negative')) {
+    return 'bg-emerald-50 text-emerald-800 border-emerald-300 font-semibold';
+  }
+  return 'bg-slate-50 text-slate-700 border-slate-300';
+};
+
 interface TBReportsPageProps {
   onNavigate: (page: PageId) => void;
 }
@@ -56,7 +77,19 @@ export const TBReportsPage: React.FC<TBReportsPageProps> = ({ onNavigate }) => {
       const data = await tbService.getSamples(filter);
       
       const tbFields = await templateService.getTemplateFields('b2000000-0000-4000-8000-000000000002');
-      const rFields = tbFields.filter(f => f.field_type === 'result');
+      let rFields = tbFields.filter(f => f.field_type === 'result');
+      if (rFields.length === 0) {
+        rFields = [{
+          id: 'tb_default_result',
+          template_id: 'b2000000-0000-4000-8000-000000000002',
+          field_name: 'result',
+          field_label: 'तपासणी निष्कर्ष (Result)',
+          field_type: 'result',
+          options_json: JSON.stringify(DEFAULT_TB_RESULT_OPTIONS),
+          is_required: false,
+          display_order: 99
+        } as any];
+      }
       setResultFields(rFields);
       
       // Additional client-side role filtering just in case
@@ -100,9 +133,9 @@ export const TBReportsPage: React.FC<TBReportsPageProps> = ({ onNavigate }) => {
 
     if (selectedResult && selectedResult !== 'all') {
       if (selectedResult === 'Pending') {
-        result = result.filter(r => !r.test_result || r.test_result === 'Pending');
+        result = result.filter(r => !r.result || r.result === 'Pending');
       } else {
-        result = result.filter(r => r.test_result === selectedResult);
+        result = result.filter(r => r.result === selectedResult);
       }
     }
 
@@ -114,9 +147,9 @@ export const TBReportsPage: React.FC<TBReportsPageProps> = ({ onNavigate }) => {
     if (!resultRecord) return;
     try {
       await tbService.updateSample(resultRecord.id, {
-        test_result: resultUpdates,
-        tested_on: new Date().toISOString().split('T')[0],
-        tested_by: user?.employeeId || null,
+        result: resultUpdates,
+        result_updated_at: new Date().toISOString().split('T')[0],
+        result_updated_by: user?.employeeId || null,
       });
       setResultRecord(null);
       loadData();
@@ -164,7 +197,7 @@ export const TBReportsPage: React.FC<TBReportsPageProps> = ({ onNavigate }) => {
     if (filteredRecords.length === 0) return;
     const headers = [
       'अ.क्र.', 'संशयित रुग्णाचे नाव', 'वय', 'लिंग', 'मोबाईल', 'निक्षय ID',
-      'नमुना घेतल्याचा दिनांक', 'नमुना पाठवण्याचा दिनांक', 'जोखीम प्रकार', 'नमुना प्रकार', 'कोठे दिला'
+      'नमुना घेतल्याचा दिनांक', 'नमुना पाठवण्याचा दिनांक', 'जोखीम प्रकार', 'नमुना प्रकार', 'कोठे दिला', 'निकाल (Result)'
     ];
     
     const rows = filteredRecords.map((r, index) => [
@@ -178,12 +211,13 @@ export const TBReportsPage: React.FC<TBReportsPageProps> = ({ onNavigate }) => {
       formatIndianDate(r.sample_sent_date),
       r.risk_type,
       r.sample_type,
-      r.sample_given_at === 'PHC_BHADA' ? 'प्राथमिक आरोग्य केंद्र भादा' : r.sample_given_at === 'RURAL_HOSPITAL_AUSA' ? 'ग्रामीण रुग्णालय औसा' : '-'
+      r.sample_given_at === 'PHC_BHADA' ? 'प्राथमिक आरोग्य केंद्र भादा' : r.sample_given_at === 'RURAL_HOSPITAL_AUSA' ? 'ग्रामीण रुग्णालय औसा' : '-',
+      r.result || 'Pending'
     ]);
 
     const csvContent = "\uFEFF" + [
       headers.join(','),
-      ...rows.map(row => row.map(v => `"\${v}"`).join(','))
+      ...rows.map(row => row.map(v => `"${v}"`).join(','))
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -230,6 +264,7 @@ export const TBReportsPage: React.FC<TBReportsPageProps> = ({ onNavigate }) => {
               <th>जोखीम प्रकार</th>
               <th>नमुना प्रकार</th>
               <th>कोठे दिला</th>
+              <th>निकाल (Result)</th>
             </tr>
           </thead>
           <tbody>
@@ -246,6 +281,7 @@ export const TBReportsPage: React.FC<TBReportsPageProps> = ({ onNavigate }) => {
                 <td>${r.risk_type}</td>
                 <td>${r.sample_type}</td>
                 <td>${r.sample_given_at === 'PHC_BHADA' ? 'प्राथमिक आरोग्य केंद्र भादा' : r.sample_given_at === 'RURAL_HOSPITAL_AUSA' ? 'ग्रामीण रुग्णालय औसा' : '-'}</td>
+                <td>${r.result || 'Pending'}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -362,7 +398,7 @@ export const TBReportsPage: React.FC<TBReportsPageProps> = ({ onNavigate }) => {
                 opts = typeof f.options_json === 'string' ? JSON.parse(f.options_json) : (f.options_json || []);
               } catch(e) {}
               
-              const pendingCount = filteredRecords.filter(r => !r.test_result || r.test_result === 'Pending').length;
+              const pendingCount = filteredRecords.filter(r => !r.result || r.result === 'Pending').length;
               
               return (
                 <div key={`summary-${f.id}`} className="flex flex-wrap items-center gap-2 text-xs font-medium">
@@ -371,7 +407,7 @@ export const TBReportsPage: React.FC<TBReportsPageProps> = ({ onNavigate }) => {
                     Pending: {pendingCount}
                   </span>
                   {opts.map((opt: any, idx: number) => {
-                    const count = filteredRecords.filter(r => r.test_result === (opt.value || opt.label)).length;
+                    const count = filteredRecords.filter(r => r.result === (opt.value || opt.label)).length;
                     if (count === 0) return null;
                     return (
                       <span key={idx} className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded shadow-sm border border-emerald-200">
@@ -450,14 +486,14 @@ export const TBReportsPage: React.FC<TBReportsPageProps> = ({ onNavigate }) => {
                     {resultFields.length > 0 && (
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-2">
-                          <span className={`px-2 py-1 rounded text-xs font-semibold ${!r.test_result || r.test_result === 'Pending' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                            {!r.test_result || r.test_result === 'Pending' ? 'Pending' : r.test_result}
+                          <span className={`px-2.5 py-0.5 rounded-full text-xs border ${getTBResultBadgeStyle(r.result)}`}>
+                            {!r.result || r.result === 'Pending' ? 'Pending' : r.result}
                           </span>
                           {isPhcController && (
                             <button
                               onClick={() => {
                                 setResultRecord(r);
-                                setResultUpdates(r.test_result || 'Pending');
+                                setResultUpdates(r.result || 'Pending');
                               }}
                               className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"
                               title="निकाल अद्यतनित करा"
